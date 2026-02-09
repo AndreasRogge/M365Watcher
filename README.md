@@ -4,6 +4,18 @@
 
 This PowerShell script provides comprehensive management of Microsoft's Unified Tenant Configuration Management (UTCM) APIs through Microsoft Graph. UTCM enables automated monitoring of Microsoft 365 tenant configuration settings and detection of configuration drift across workloads.
 
+> **⚠️ Important:** UTCM is currently in **preview** and may not be available in all Microsoft 365 tenants. Use `Test-UTCMAvailability` to check if UTCM is enabled in your tenant before proceeding.
+
+## Features
+
+- ✅ **Interactive Menu Interface** - User-friendly menu for all operations
+- ✅ **Complete UTCM Management** - All snapshot, monitor, and drift operations
+- ✅ **Service Principal Setup** - Automated UTCM service principal creation
+- ✅ **Permission Management** - Grant and verify required permissions
+- ✅ **Drift Detection** - Monitor configuration changes across workloads
+- ✅ **Export & Reporting** - Generate drift reports and summaries
+- ✅ **Automation Ready** - All functions support scripting and automation
+
 ## Prerequisites
 
 - **PowerShell 7.0 or later** (recommended)
@@ -14,6 +26,7 @@ This PowerShell script provides comprehensive management of Microsoft's Unified 
 - **Permissions Required:**
   - Graph API: `ConfigurationMonitoring.ReadWrite.All`
   - Service Principal: Various workload-specific permissions
+- **UTCM Availability:** UTCM must be enabled in your tenant (currently in preview)
 
 ## Supported Workloads
 
@@ -21,16 +34,101 @@ This PowerShell script provides comprehensive management of Microsoft's Unified 
 - **Exchange Online** (Transport Rules, CAS Mailbox Plans, etc.)
 - **Microsoft Intune** (Device Compliance, Configuration Policies)
 - **Microsoft Teams** (Meeting Policies, Messaging Policies)
-- **Microsoft Defender**
 - **Microsoft Purview** (Retention Policies, Sensitivity Labels)
+
+## Available Functions
+
+### Connection & Setup
+- `Connect-UTCM` - Connect to Microsoft Graph with UTCM permissions
+- `Test-UTCMAvailability` - Test if UTCM is available in tenant
+- `Initialize-UTCMServicePrincipal` - Create UTCM service principal
+- `Grant-UTCMPermissions` - Grant permissions to UTCM service principal
+
+### Snapshot Management
+- `New-UTCMSnapshot` - Create a configuration snapshot
+- `Get-UTCMSnapshot` - Get snapshots (all or specific)
+- `Remove-UTCMSnapshot` - Delete a snapshot
+
+### Monitor Management
+- `New-UTCMMonitor` - Create a configuration monitor
+- `Get-UTCMMonitor` - Get monitors (all, specific, or by name)
+- `Remove-UTCMMonitor` - Delete a monitor
+- `Update-UTCMMonitorBaseline` - Update monitor baseline snapshot
+
+### Drift Detection
+- `Get-UTCMDrift` - Get configuration drifts (with filters)
+- `Get-UTCMDriftDetail` - Get detailed drift information
+
+### Results & Reporting
+- `Get-UTCMMonitoringResult` - Get monitoring results
+- `Get-UTCMSummary` - Display UTCM configuration summary
+
+### Utilities
+- `Get-UTCMResourceTypes` - Show available resource types
+- `Start-UTCMInteractive` - Launch interactive menu interface
+- `Start-UTCMExample` - Run example workflow
 
 ## Quick Start
 
-### 1. Initial Setup
+### Interactive Mode (Recommended for Beginners)
+
+The script includes an interactive menu-driven interface for easy management:
+
+```powershell
+# Launch interactive mode
+.\UTCM-Management.ps1 -Interactive
+
+# Or load the script and start interactive mode
+. .\UTCM-Management.ps1
+Start-UTCMInteractive
+```
+
+The interactive menu provides a user-friendly interface with all UTCM operations organized by category:
+- Setup & Configuration
+- Snapshot Management (with smart snapshot selection)
+- Monitor Management (with smart snapshot selection)
+- Drift & Results
+- Utilities
+
+**Enhanced User Experience:**
+- **Smart Snapshot Selection**: Options 7 (Delete Snapshot) and 8 (Create Monitor) automatically fetch and display a numbered list of available snapshots
+- **Color-Coded Status**:
+  - 🟢 Green = Succeeded
+  - 🟡 Yellow = In Progress
+  - 🔴 Red = Failed
+- **Flexible Selection**: Choose snapshots by number (1, 2, 3) or by full snapshot ID
+- **Easy Cancellation**: Enter 0 to cancel and return to the main menu
+- **Clean Display**: Clear screen formatting for better readability
+
+**Interactive Menu Operations:**
+
+When you select option **7 (Delete Snapshot)** or **8 (Create Monitor)**, the script will:
+1. Automatically fetch all available snapshots from your tenant
+2. Display them in a numbered, color-coded list showing:
+   - Snapshot number (for easy selection)
+   - Display name
+   - Status (succeeded, inProgress, failed)
+   - Creation date
+3. Allow you to select by:
+   - Entering the number (e.g., `1` for the first snapshot)
+   - Pasting the full snapshot ID
+   - Entering `0` to cancel
+4. Validate your selection before proceeding
+
+This eliminates the need to manually look up snapshot IDs and makes the interactive mode significantly more user-friendly.
+
+### Command-Line Mode
+
+For automation and scripting, use the individual functions:
+
+#### 1. Initial Setup
 
 ```powershell
 # Load the script
 . .\UTCM-Management.ps1
+
+# Test if UTCM is available in your tenant
+Test-UTCMAvailability
 
 # Connect to Microsoft Graph
 Connect-UTCM
@@ -45,7 +143,7 @@ Grant-UTCMPermissions -Permissions @(
 )
 ```
 
-### 2. Create Your First Snapshot
+#### 2. Create Your First Snapshot
 
 ```powershell
 # Create a snapshot of Conditional Access policies
@@ -58,13 +156,14 @@ $snapshot = New-UTCMSnapshot `
 $snapshot | Format-List
 ```
 
-### 3. Create a Monitor
+#### 3. Create a Monitor
 
 ```powershell
 # Wait a moment for snapshot to complete
 Start-Sleep -Seconds 15
 
 # Create a monitor using the snapshot
+# Note: Monitor display name must be 8-32 characters
 $monitor = New-UTCMMonitor `
     -DisplayName "CA Policy Monitor" `
     -Description "Monitors Conditional Access policies for unauthorized changes" `
@@ -74,7 +173,12 @@ $monitor = New-UTCMMonitor `
 $monitor | Format-List
 ```
 
-### 4. Check for Drift
+**Important:**
+- Monitor display name must be between 8 and 32 characters
+- The function automatically retrieves the snapshot's baseline configuration
+- Ensure the snapshot job has completed before creating the monitor
+
+#### 4. Check for Drift
 
 ```powershell
 # Wait for first monitoring cycle (monitors run every 6 hours)
@@ -281,8 +385,9 @@ $report | Format-Table -AutoSize
 | Intune Policies | DeviceManagementConfiguration.Read.All |
 | Teams Policies | TeamworkConfiguration.Read.All |
 
-## Important Limitations
+## Important Limitations & Known Issues
 
+### UTCM Service Limitations
 - **Maximum 30 monitors per tenant**
 - **Maximum 800 resources monitored per day** across all monitors
 - **Monitors run every 6 hours** (fixed interval, cannot be changed)
@@ -291,10 +396,70 @@ $report | Format-Table -AutoSize
 - **20,000 resource limit** per month for snapshot extractions
 - **Updating a monitor's baseline deletes** all previous drift records
 
+### Preview Limitations
+- **UTCM availability varies by tenant** - Feature is in preview and rolling out gradually
+- **Service interruptions possible** - As a preview service, occasional outages may occur
+- **API endpoints may change** - Beta endpoints are subject to change without notice
+- **Resource type support varies** - Not all resource types may be supported in all tenants
+
+### Script Implementation Notes
+- **Correct API endpoints used:**
+  - Creating snapshots: `POST /beta/admin/configurationManagement/configurationSnapshots/createSnapshot`
+  - Listing snapshots: `GET /beta/admin/configurationManagement/configurationSnapshotJobs`
+  - Getting specific snapshot: `GET /beta/admin/configurationManagement/configurationSnapshotJobs/{id}`
+- **Client-side filtering:** appRoleId filtering is done in PowerShell due to Graph API limitations
+- **Resource type names are case-sensitive**
+
 ## Troubleshooting
+
+### Issue: UTCM returns 404 errors
+**Symptoms:** All UTCM operations return 404 or "UnknownError"
+**Solution:** UTCM is not available in your tenant yet. This is a preview feature being rolled out gradually.
+```powershell
+# Test availability
+Test-UTCMAvailability
+
+# If not available, monitor Microsoft 365 Message Center for rollout updates
+```
+
+### Issue: "Invalid filter clause" or "appRoleId filter not supported"
+**Symptoms:** Error when granting permissions: "Invalid filter clause appRoleId"
+**Solution:** This is a known Graph API limitation - the script now handles this correctly by fetching all role assignments and filtering in PowerShell instead of using OData filters.
+
+### Issue: "DisplayName must be a string with a minimum length of 8 and a maximum length of 32"
+**Symptoms:** Error when creating a monitor with display name validation error
+**Solution:** Ensure monitor display name is between 8-32 characters
+```powershell
+# Good examples (8-32 characters)
+"CA Policies Monitor"
+"Entra ID Security Monitor"
+"Exchange Transport Rules"
+
+# Bad examples
+"Test"  # Too short (< 8 characters)
+"This is a very long monitor name that exceeds thirty-two characters"  # Too long (> 32 characters)
+```
+
+### Issue: "The Resources field is required" or "The DisplayName field is required" (Baseline)
+**Symptoms:** Error when creating a monitor about missing baseline fields
+**Solution:** This error usually means the snapshot hasn't completed yet or doesn't contain the required information. Wait for the snapshot to complete before creating the monitor.
+```powershell
+# Check snapshot status
+$snapshot = Get-UTCMSnapshot -SnapshotId "your-snapshot-id"
+$snapshot.status  # Should be "succeeded"
+
+# Wait if still in progress
+if ($snapshot.status -eq "inProgress") {
+    Write-Host "Waiting for snapshot to complete..."
+    Start-Sleep -Seconds 30
+}
+```
 
 ### Issue: "Service principal not found"
 **Solution:** Run `Initialize-UTCMServicePrincipal` first
+```powershell
+Initialize-UTCMServicePrincipal
+```
 
 ### Issue: "Permission denied" errors
 **Solution:** Ensure you've granted the correct permissions:
@@ -305,14 +470,16 @@ Grant-UTCMPermissions -Permissions @('Policy.Read.All', 'Policy.ReadWrite.Condit
 ### Issue: Snapshot status shows "Failed"
 **Solution:** Check that:
 1. UTCM service principal has required permissions
-2. Resource type names are correct
+2. Resource type names are correct (case-sensitive)
 3. Resources exist in your tenant
+4. You have appropriate Microsoft 365 licenses
 
 ### Issue: No drifts detected after changes
-**Solution:** 
+**Solution:**
 - Monitors run every 6 hours; wait for next cycle
 - Verify monitor is active: `Get-UTCMMonitor -MonitorId <id>`
 - Check monitoring results: `Get-UTCMMonitoringResult -MonitorId <id>`
+- Ensure changes were made to monitored resources
 
 ### Issue: Cannot connect to Graph
 **Solution:**
@@ -320,6 +487,20 @@ Grant-UTCMPermissions -Permissions @('Policy.Read.All', 'Policy.ReadWrite.Condit
 # Disconnect and reconnect
 Disconnect-MgGraph
 Connect-UTCM -Scopes @('ConfigurationMonitoring.ReadWrite.All', 'Directory.ReadWrite.All')
+```
+
+### Issue: Snapshot from yesterday is not visible
+**Solution:** Check if UTCM service was interrupted or temporarily unavailable:
+```powershell
+# Try reconnecting
+Disconnect-MgGraph
+Connect-UTCM
+
+# Test availability
+Test-UTCMAvailability
+
+# Try retrieving the specific snapshot by ID
+Get-UTCMSnapshot -SnapshotId "your-snapshot-id"
 ```
 
 ## Best Practices
@@ -388,13 +569,40 @@ if ($drifts.Count -gt 0) {
 
 - [Official Microsoft Documentation](https://learn.microsoft.com/en-us/graph/api/resources/unified-tenant-configuration-management-api-overview)
 - [Microsoft Graph Explorer](https://developer.microsoft.com/en-us/graph/graph-explorer)
-- [UTCM Authentication Setup](https://learn.microsoft.com/en-us/graph/utcm-authentication-setup)
+- [UTCM API Reference - List Snapshot Jobs](https://learn.microsoft.com/en-us/graph/api/configurationmanagement-list-configurationsnapshotjobs?view=graph-rest-beta)
+- [UTCM API Reference - Create Snapshot](https://learn.microsoft.com/en-us/graph/api/configurationbaseline-createsnapshot?view=graph-rest-beta)
 - [Microsoft 365 DSC to UTCM Migration](https://microsoft365dsc.com/)
+
+## Version History
+
+### Latest Version
+- ✅ Added interactive menu interface for easier management
+- ✅ Enhanced snapshot selection with numbered lists and color-coded status
+- ✅ Smart UX for Delete Snapshot and Create Monitor operations
+- ✅ Fixed API endpoint issues (using correct configurationSnapshotJobs endpoints)
+- ✅ Fixed permission granting (appRoleId filter workaround)
+- ✅ Fixed monitor creation to properly retrieve baseline from snapshot resourceLocation
+- ✅ Added UTCM availability testing
+- ✅ Improved error handling and user feedback
+- ✅ Added display name validation (8-32 characters for monitors)
+- ✅ Added comprehensive troubleshooting guide
+- ✅ Support for all UTCM operations (snapshots, monitors, drift detection)
 
 ## License
 
 This script is provided as-is for educational and operational purposes.
 
+## Support & Feedback
+
+For issues, questions, or feature requests:
+1. Check the [Troubleshooting](#troubleshooting) section
+2. Review Microsoft's official UTCM documentation
+3. Test with `Test-UTCMAvailability` to ensure UTCM is enabled in your tenant
+
 ## Contributing
 
-Feel free to extend this script with additional functionality or improve existing functions.
+Feel free to extend this script with additional functionality or improve existing functions. When contributing:
+- Follow PowerShell best practices
+- Test with UTCM-enabled tenants
+- Update documentation for new features
+- Handle errors gracefully
