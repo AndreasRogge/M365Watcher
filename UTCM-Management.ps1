@@ -75,8 +75,8 @@ function Test-UTCMAvailability {
     
     try {
         Write-Host "Testing UTCM availability..." -ForegroundColor Cyan
-        
-        $uri = "beta/admin/configurationManagement/configurationSnapshots"
+
+        $uri = "beta/admin/configurationManagement/configurationSnapshotJobs"
         $result = Invoke-MgGraphRequest -Uri $uri -Method GET -ErrorAction Stop
         
         Write-Host "UTCM is available in this tenant!" -ForegroundColor Green
@@ -269,10 +269,10 @@ function Get-UTCMSnapshot {
     
     try {
         if ($SnapshotId) {
-            $uri = "beta/admin/configurationManagement/configurationSnapshots/$SnapshotId"
+            $uri = "beta/admin/configurationManagement/configurationSnapshotJobs/$SnapshotId"
             Write-Host "Retrieving snapshot: $SnapshotId" -ForegroundColor Cyan
         } else {
-            $uri = "beta/admin/configurationManagement/configurationSnapshots"
+            $uri = "beta/admin/configurationManagement/configurationSnapshotJobs"
             Write-Host "Retrieving all snapshots..." -ForegroundColor Cyan
         }
         
@@ -304,8 +304,8 @@ function Remove-UTCMSnapshot {
     try {
         if ($PSCmdlet.ShouldProcess($SnapshotId, "Delete snapshot")) {
             Write-Host "Deleting snapshot: $SnapshotId" -ForegroundColor Cyan
-            
-            $uri = "beta/admin/configurationManagement/configurationSnapshots/$SnapshotId"
+
+            $uri = "beta/admin/configurationManagement/configurationSnapshotJobs/$SnapshotId"
             Invoke-MgGraphRequest -Uri $uri -Method DELETE
             
             Write-Host "Snapshot deleted successfully!" -ForegroundColor Green
