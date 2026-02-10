@@ -704,10 +704,6 @@ function Get-UTCMResourceTypes {
     Write-Host "  - microsoft.exchange.transportRule"
     Write-Host "  - microsoft.exchange.mailboxPlan"
     
-    Write-Host "`nIntune:" -ForegroundColor Yellow
-    Write-Host "  - microsoft.intune.deviceCompliancePolicy"
-    Write-Host "  - microsoft.intune.deviceConfiguration"
-    
     Write-Host "`nTeams:" -ForegroundColor Yellow
     Write-Host "  - microsoft.teams.meetingPolicy"
     Write-Host "  - microsoft.teams.messagingPolicy"

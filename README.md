@@ -32,7 +32,6 @@ This PowerShell script provides comprehensive management of Microsoft's Unified 
 
 - **Entra ID** (Conditional Access, Authentication Methods, etc.)
 - **Exchange Online** (Transport Rules, CAS Mailbox Plans, etc.)
-- **Microsoft Intune** (Device Compliance, Configuration Policies)
 - **Microsoft Teams** (Meeting Policies, Messaging Policies)
 - **Microsoft Purview** (Retention Policies, Sensitivity Labels)
 
@@ -239,29 +238,7 @@ $entraMonitor = New-UTCMMonitor `
     -BaselineSnapshotId $entraSnapshot.id
 ```
 
-### Example 3: Monitor Intune Compliance Policies
-
-```powershell
-# Ensure proper permissions
-Grant-UTCMPermissions -Permissions @(
-    'DeviceManagementConfiguration.Read.All',
-    'Policy.Read.All'
-)
-
-# Create Intune snapshot
-$intuneSnapshot = New-UTCMSnapshot `
-    -DisplayName "Intune Compliance Baseline" `
-    -Description "Device compliance policies baseline" `
-    -Resources @('microsoft.intune.deviceCompliancePolicy')
-
-# Create monitor
-$intuneMonitor = New-UTCMMonitor `
-    -DisplayName "Intune Compliance Monitor" `
-    -Description "Monitors device compliance policies" `
-    -BaselineSnapshotId $intuneSnapshot.id
-```
-
-### Example 4: Get Configuration Summary
+### Example 3: Get Configuration Summary
 
 ```powershell
 # Get overall UTCM status
@@ -280,7 +257,7 @@ $results = Get-UTCMMonitoringResult
 $results | Select-Object monitorId, status, detectedDateTime | Format-Table
 ```
 
-### Example 5: Update Monitor Baseline
+### Example 4: Update Monitor Baseline
 
 ```powershell
 # Create new snapshot with current configuration
@@ -300,7 +277,7 @@ Update-UTCMMonitorBaseline `
 # Note: This will delete all previous drift records
 ```
 
-### Example 6: Cleanup Old Snapshots
+### Example 5: Cleanup Old Snapshots
 
 ```powershell
 # Get all snapshots
@@ -318,7 +295,7 @@ foreach ($snap in $oldSnapshots) {
 }
 ```
 
-### Example 7: Export Drift Report
+### Example 6: Export Drift Report
 
 ```powershell
 # Get all active drifts
@@ -360,11 +337,6 @@ $report | Format-Table -AutoSize
 - `microsoft.exchange.acceptedDomain`
 - `microsoft.exchange.remoteDomain`
 
-### Intune Resources
-- `microsoft.intune.deviceCompliancePolicy`
-- `microsoft.intune.deviceConfiguration`
-- `microsoft.intune.deviceEnrollmentConfiguration`
-
 ### Teams Resources
 - `microsoft.teams.meetingPolicy`
 - `microsoft.teams.messagingPolicy`
@@ -382,7 +354,6 @@ $report | Format-Table -AutoSize
 | Conditional Access | Policy.Read.All, Policy.ReadWrite.ConditionalAccess |
 | Authentication Methods | Policy.Read.All, Policy.ReadWrite.AuthenticationMethod |
 | Exchange Transport Rules | Exchange.ManageAsApp |
-| Intune Policies | DeviceManagementConfiguration.Read.All |
 | Teams Policies | TeamworkConfiguration.Read.All |
 
 ## Important Limitations & Known Issues
