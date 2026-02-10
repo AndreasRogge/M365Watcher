@@ -30,9 +30,10 @@ This PowerShell script provides comprehensive management of Microsoft's Unified 
 
 ## Supported Workloads
 
-- **Entra ID** (Authorization Policy)
-- **Exchange Online** (Transport Rules, CAS Mailbox Plans, Mailbox Plans)
-- **Microsoft Teams** (Meeting Policies, Messaging Policies)
+- **Entra ID** (Authorization Policy, Administrative Units, Applications, Named Locations, Security Defaults, Groups, Role Definitions)
+- **Exchange Online** (Transport Rules, CAS Mailbox Plans, Anti-Phish, DKIM, Safe Links, Organization Config, and more)
+- **Security & Compliance** (DLP Compliance Policies, Label Policies)
+- **Microsoft Teams** (Meeting, Messaging, Calling, App Setup, Feedback Policies)
 
 ## Available Functions
 
@@ -147,7 +148,7 @@ Grant-UTCMPermissions -Permissions @(
 $snapshot = New-UTCMSnapshot `
     -DisplayName "Transport Rules Baseline - $(Get-Date -Format 'yyyy-MM-dd')" `
     -Description "Baseline snapshot for Exchange transport rules" `
-    -Resources @('microsoft.exchange.transportRule')
+    -Resources @('microsoft.exchange.transportrule')
 
 # View snapshot details
 $snapshot | Format-List
@@ -204,7 +205,7 @@ if ($drifts.Count -gt 0) {
 $exSnapshot = New-UTCMSnapshot `
     -DisplayName "Exchange Transport Rules Baseline" `
     -Description "Baseline for all transport rules" `
-    -Resources @('microsoft.exchange.transportRule')
+    -Resources @('microsoft.exchange.transportrule')
 
 # Grant Exchange permissions if needed
 Grant-UTCMPermissions -Permissions @('Exchange.ManageAsApp')
@@ -224,8 +225,8 @@ $teamsSnapshot = New-UTCMSnapshot `
     -DisplayName "Teams Policies Baseline" `
     -Description "Baseline for Teams meeting and messaging policies" `
     -Resources @(
-        'microsoft.teams.meetingPolicy',
-        'microsoft.teams.messagingPolicy'
+        'microsoft.teams.meetingpolicy',
+        'microsoft.teams.messagingpolicy'
     )
 
 # Create monitor
@@ -261,7 +262,7 @@ $results | Select-Object monitorId, status, detectedDateTime | Format-Table
 $newBaseline = New-UTCMSnapshot `
     -DisplayName "Updated Rules Baseline - $(Get-Date -Format 'yyyy-MM-dd')" `
     -Description "Updated baseline after approved changes" `
-    -Resources @('microsoft.exchange.transportRule')
+    -Resources @('microsoft.exchange.transportrule')
 
 # Wait for snapshot completion
 Start-Sleep -Seconds 15
@@ -322,25 +323,47 @@ $report | Format-Table -AutoSize
 ## Resource Types Reference
 
 ### Entra ID Resources
+- `microsoft.entra.administrativeunit`
+- `microsoft.entra.application`
 - `microsoft.entra.authorizationpolicy`
+- `microsoft.entra.group`
+- `microsoft.entra.namedlocationpolicy`
+- `microsoft.entra.roledefinition`
+- `microsoft.entra.securitydefaults`
 
 ### Exchange Online Resources
-- `microsoft.exchange.casMailboxPlan`
-- `microsoft.exchange.transportRule`
-- `microsoft.exchange.mailboxPlan`
+- `microsoft.exchange.accepteddomain`
+- `microsoft.exchange.antiphishpolicy`
+- `microsoft.exchange.casmailboxplan`
+- `microsoft.exchange.dkimsigningconfig`
+- `microsoft.exchange.mailboxplan`
+- `microsoft.exchange.organizationconfig`
+- `microsoft.exchange.remotedomain`
+- `microsoft.exchange.safelinkspolicy`
+- `microsoft.exchange.transportrule`
+
+### Security & Compliance Resources
+- `microsoft.securityandcompliance.dlpcompliancepolicy`
+- `microsoft.securityandcompliance.labelpolicy`
 
 ### Teams Resources
-- `microsoft.teams.meetingPolicy`
-- `microsoft.teams.messagingPolicy`
+- `microsoft.teams.appsetuppolicy`
+- `microsoft.teams.callingpolicy`
+- `microsoft.teams.feedbackpolicy`
+- `microsoft.teams.meetingpolicy`
+- `microsoft.teams.messagingpolicy`
 
-> **Note:** Resource types like `microsoft.entra.conditionalaccesspolicy`, `microsoft.entra.authenticationmethodpolicy`, and all `microsoft.purview.*` / `microsoft.intune.*` types are not currently supported by the UTCM API and will return BadRequest errors.
+> **Note:** The full UTCM schema defines 270+ resource types (see [schema](https://www.schemastore.org/utcm-monitor.json)), but not all are currently supported by the API. All `microsoft.intune.*` types and some `microsoft.entra.*` types (e.g., `conditionalaccesspolicy`, `authenticationmethodpolicy`) return BadRequest errors.
 
 ## Required Permissions by Resource Type
 
 | Resource Type | Required Permissions |
 |--------------|---------------------|
-| Authorization Policy | Policy.Read.All |
-| Exchange Transport Rules | Exchange.ManageAsApp |
+| Entra ID Policies | Policy.Read.All |
+| Entra ID Groups/Apps | Directory.Read.All |
+| Entra ID Role Definitions | RoleManagement.Read.Directory |
+| Exchange Online | Exchange.ManageAsApp |
+| Security & Compliance | Policy.Read.All |
 | Teams Policies | TeamworkConfiguration.Read.All |
 
 ## Important Limitations & Known Issues

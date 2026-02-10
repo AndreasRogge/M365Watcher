@@ -693,20 +693,42 @@ function Get-UTCMResourceTypes {
     [CmdletBinding()]
     param()
     
-    Write-Host "Common UTCM Resource Types:" -ForegroundColor Cyan
+    Write-Host "Verified UTCM Resource Types:" -ForegroundColor Cyan
+
     Write-Host "`nEntra ID:" -ForegroundColor Yellow
+    Write-Host "  - microsoft.entra.administrativeunit"
+    Write-Host "  - microsoft.entra.application"
     Write-Host "  - microsoft.entra.authorizationpolicy"
+    Write-Host "  - microsoft.entra.group"
+    Write-Host "  - microsoft.entra.namedlocationpolicy"
+    Write-Host "  - microsoft.entra.roledefinition"
+    Write-Host "  - microsoft.entra.securitydefaults"
 
     Write-Host "`nExchange Online:" -ForegroundColor Yellow
-    Write-Host "  - microsoft.exchange.casMailboxPlan"
-    Write-Host "  - microsoft.exchange.transportRule"
-    Write-Host "  - microsoft.exchange.mailboxPlan"
+    Write-Host "  - microsoft.exchange.accepteddomain"
+    Write-Host "  - microsoft.exchange.antiphishpolicy"
+    Write-Host "  - microsoft.exchange.casmailboxplan"
+    Write-Host "  - microsoft.exchange.dkimsigningconfig"
+    Write-Host "  - microsoft.exchange.mailboxplan"
+    Write-Host "  - microsoft.exchange.organizationconfig"
+    Write-Host "  - microsoft.exchange.remotedomain"
+    Write-Host "  - microsoft.exchange.safelinkspolicy"
+    Write-Host "  - microsoft.exchange.transportrule"
+
+    Write-Host "`nSecurity & Compliance:" -ForegroundColor Yellow
+    Write-Host "  - microsoft.securityandcompliance.dlpcompliancepolicy"
+    Write-Host "  - microsoft.securityandcompliance.labelpolicy"
 
     Write-Host "`nTeams:" -ForegroundColor Yellow
-    Write-Host "  - microsoft.teams.meetingPolicy"
-    Write-Host "  - microsoft.teams.messagingPolicy"
-    
-    Write-Host "`nNote: This is not an exhaustive list. Refer to Microsoft documentation for complete resource types." -ForegroundColor Gray
+    Write-Host "  - microsoft.teams.appsetuppolicy"
+    Write-Host "  - microsoft.teams.callingpolicy"
+    Write-Host "  - microsoft.teams.feedbackpolicy"
+    Write-Host "  - microsoft.teams.meetingpolicy"
+    Write-Host "  - microsoft.teams.messagingpolicy"
+
+    Write-Host "`nFor the full schema of 270+ resource types, see:" -ForegroundColor Gray
+    Write-Host "  https://www.schemastore.org/utcm-monitor.json" -ForegroundColor Gray
+    Write-Host "Note: Not all schema types are currently supported by the API." -ForegroundColor Gray
 }
 
 #endregion
@@ -862,7 +884,9 @@ function Start-UTCMInteractive {
                     $description = Read-Host "Enter description (optional)"
                     Write-Host "`nExample resources:" -ForegroundColor Yellow
                     Write-Host "  - microsoft.entra.authorizationpolicy" -ForegroundColor Gray
-                    Write-Host "  - microsoft.exchange.transportRule" -ForegroundColor Gray
+                    Write-Host "  - microsoft.exchange.transportrule" -ForegroundColor Gray
+                    Write-Host "  - microsoft.teams.meetingpolicy" -ForegroundColor Gray
+                    Write-Host "  - microsoft.securityandcompliance.dlpcompliancepolicy" -ForegroundColor Gray
                     Write-Host "`nHint: Use option 17 to see all available resource types" -ForegroundColor Gray
                     $resources = Read-Host "`nEnter resources (comma-separated)"
 
