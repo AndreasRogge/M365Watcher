@@ -30,10 +30,9 @@ This PowerShell script provides comprehensive management of Microsoft's Unified 
 
 ## Supported Workloads
 
-- **Entra ID** (Conditional Access, Authentication Methods, etc.)
-- **Exchange Online** (Transport Rules, CAS Mailbox Plans, etc.)
+- **Entra ID** (Authorization Policy)
+- **Exchange Online** (Transport Rules, CAS Mailbox Plans, Mailbox Plans)
 - **Microsoft Teams** (Meeting Policies, Messaging Policies)
-- **Microsoft Purview** (Retention Policies, Sensitivity Labels)
 
 ## Available Functions
 
@@ -137,19 +136,18 @@ Initialize-UTCMServicePrincipal
 
 # Grant required permissions
 Grant-UTCMPermissions -Permissions @(
-    'Policy.Read.All',
-    'Policy.ReadWrite.ConditionalAccess'
+    'Policy.Read.All'
 )
 ```
 
 #### 2. Create Your First Snapshot
 
 ```powershell
-# Create a snapshot of Conditional Access policies
+# Create a snapshot of Exchange transport rules
 $snapshot = New-UTCMSnapshot `
-    -DisplayName "CA Policies Baseline - $(Get-Date -Format 'yyyy-MM-dd')" `
-    -Description "Baseline snapshot for Conditional Access policies" `
-    -Resources @('microsoft.entra.conditionalaccesspolicy')
+    -DisplayName "Transport Rules Baseline - $(Get-Date -Format 'yyyy-MM-dd')" `
+    -Description "Baseline snapshot for Exchange transport rules" `
+    -Resources @('microsoft.exchange.transportRule')
 
 # View snapshot details
 $snapshot | Format-List
@@ -164,8 +162,8 @@ Start-Sleep -Seconds 15
 # Create a monitor using the snapshot
 # Note: Monitor display name must be 8-32 characters
 $monitor = New-UTCMMonitor `
-    -DisplayName "CA Policy Monitor" `
-    -Description "Monitors Conditional Access policies for unauthorized changes" `
+    -DisplayName "Transport Rules Monitor" `
+    -Description "Monitors Exchange transport rules for unauthorized changes" `
     -BaselineSnapshotId $snapshot.id
 
 # View monitor details
@@ -218,24 +216,23 @@ $exMonitor = New-UTCMMonitor `
     -BaselineSnapshotId $exSnapshot.id
 ```
 
-### Example 2: Monitor Multiple Entra ID Policies
+### Example 2: Monitor Teams Policies
 
 ```powershell
-# Create comprehensive Entra ID snapshot
-$entraSnapshot = New-UTCMSnapshot `
-    -DisplayName "Entra ID Security Baseline" `
-    -Description "All critical Entra ID security policies" `
+# Create Teams snapshot
+$teamsSnapshot = New-UTCMSnapshot `
+    -DisplayName "Teams Policies Baseline" `
+    -Description "Baseline for Teams meeting and messaging policies" `
     -Resources @(
-        'microsoft.entra.conditionalaccesspolicy',
-        'microsoft.entra.authenticationmethodpolicy',
-        'microsoft.entra.authorizationpolicy'
+        'microsoft.teams.meetingPolicy',
+        'microsoft.teams.messagingPolicy'
     )
 
 # Create monitor
-$entraMonitor = New-UTCMMonitor `
-    -DisplayName "Entra ID Security Monitor" `
-    -Description "Comprehensive Entra ID security monitoring" `
-    -BaselineSnapshotId $entraSnapshot.id
+$teamsMonitor = New-UTCMMonitor `
+    -DisplayName "Teams Policies Monitor" `
+    -Description "Monitors Teams policies for unauthorized changes" `
+    -BaselineSnapshotId $teamsSnapshot.id
 ```
 
 ### Example 3: Get Configuration Summary
@@ -262,9 +259,9 @@ $results | Select-Object monitorId, status, detectedDateTime | Format-Table
 ```powershell
 # Create new snapshot with current configuration
 $newBaseline = New-UTCMSnapshot `
-    -DisplayName "Updated CA Baseline - $(Get-Date -Format 'yyyy-MM-dd')" `
+    -DisplayName "Updated Rules Baseline - $(Get-Date -Format 'yyyy-MM-dd')" `
     -Description "Updated baseline after approved changes" `
-    -Resources @('microsoft.entra.conditionalaccesspolicy')
+    -Resources @('microsoft.exchange.transportRule')
 
 # Wait for snapshot completion
 Start-Sleep -Seconds 15
@@ -325,34 +322,24 @@ $report | Format-Table -AutoSize
 ## Resource Types Reference
 
 ### Entra ID Resources
-- `microsoft.entra.conditionalaccesspolicy`
-- `microsoft.entra.authenticationmethodpolicy`
 - `microsoft.entra.authorizationpolicy`
-- `microsoft.entra.identitySecurityDefaultsEnforcementPolicy`
 
 ### Exchange Online Resources
 - `microsoft.exchange.casMailboxPlan`
 - `microsoft.exchange.transportRule`
 - `microsoft.exchange.mailboxPlan`
-- `microsoft.exchange.acceptedDomain`
-- `microsoft.exchange.remoteDomain`
 
 ### Teams Resources
 - `microsoft.teams.meetingPolicy`
 - `microsoft.teams.messagingPolicy`
-- `microsoft.teams.callingPolicy`
 
-### Purview Resources
-- `microsoft.purview.retentionPolicy`
-- `microsoft.purview.sensitivityLabel`
-- `microsoft.purview.dataLossPreventionPolicy`
+> **Note:** Resource types like `microsoft.entra.conditionalaccesspolicy`, `microsoft.entra.authenticationmethodpolicy`, and all `microsoft.purview.*` / `microsoft.intune.*` types are not currently supported by the UTCM API and will return BadRequest errors.
 
 ## Required Permissions by Resource Type
 
 | Resource Type | Required Permissions |
 |--------------|---------------------|
-| Conditional Access | Policy.Read.All, Policy.ReadWrite.ConditionalAccess |
-| Authentication Methods | Policy.Read.All, Policy.ReadWrite.AuthenticationMethod |
+| Authorization Policy | Policy.Read.All |
 | Exchange Transport Rules | Exchange.ManageAsApp |
 | Teams Policies | TeamworkConfiguration.Read.All |
 

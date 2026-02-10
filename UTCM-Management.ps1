@@ -695,22 +695,16 @@ function Get-UTCMResourceTypes {
     
     Write-Host "Common UTCM Resource Types:" -ForegroundColor Cyan
     Write-Host "`nEntra ID:" -ForegroundColor Yellow
-    Write-Host "  - microsoft.entra.conditionalaccesspolicy"
-    Write-Host "  - microsoft.entra.authenticationmethodpolicy"
     Write-Host "  - microsoft.entra.authorizationpolicy"
-    
+
     Write-Host "`nExchange Online:" -ForegroundColor Yellow
     Write-Host "  - microsoft.exchange.casMailboxPlan"
     Write-Host "  - microsoft.exchange.transportRule"
     Write-Host "  - microsoft.exchange.mailboxPlan"
-    
+
     Write-Host "`nTeams:" -ForegroundColor Yellow
     Write-Host "  - microsoft.teams.meetingPolicy"
     Write-Host "  - microsoft.teams.messagingPolicy"
-        
-    Write-Host "`nPurview:" -ForegroundColor Yellow
-    Write-Host "  - microsoft.purview.retentionPolicy"
-    Write-Host "  - microsoft.purview.sensitivityLabel"
     
     Write-Host "`nNote: This is not an exhaustive list. Refer to Microsoft documentation for complete resource types." -ForegroundColor Gray
 }
@@ -745,9 +739,9 @@ function Start-UTCMExample {
     # Step 4: Create snapshot
     Write-Host "`nStep 4: Creating baseline snapshot..." -ForegroundColor Yellow
     $snapshot = New-UTCMSnapshot `
-        -DisplayName "Conditional Access Baseline $(Get-Date -Format 'yyyy-MM-dd')" `
-        -Description "Baseline for CA policies" `
-        -Resources @('microsoft.entra.conditionalaccesspolicy')
+        -DisplayName "Authorization Policy Baseline $(Get-Date -Format 'yyyy-MM-dd')" `
+        -Description "Baseline for authorization policies" `
+        -Resources @('microsoft.entra.authorizationpolicy')
     
     if ($snapshot) {
         # Wait for snapshot to complete
@@ -867,8 +861,8 @@ function Start-UTCMInteractive {
                 } else {
                     $description = Read-Host "Enter description (optional)"
                     Write-Host "`nExample resources:" -ForegroundColor Yellow
-                    Write-Host "  - microsoft.entra.conditionalaccesspolicy" -ForegroundColor Gray
-                    Write-Host "  - microsoft.entra.authenticationmethodpolicy" -ForegroundColor Gray
+                    Write-Host "  - microsoft.entra.authorizationpolicy" -ForegroundColor Gray
+                    Write-Host "  - microsoft.exchange.transportRule" -ForegroundColor Gray
                     Write-Host "`nHint: Use option 17 to see all available resource types" -ForegroundColor Gray
                     $resources = Read-Host "`nEnter resources (comma-separated)"
 
@@ -1213,7 +1207,7 @@ Quick Start:
   2. Initialize-UTCMServicePrincipal
   3. Grant-UTCMPermissions -Permissions @('Policy.Read.All')
   4. Get-UTCMResourceTypes
-  5. New-UTCMSnapshot -DisplayName "My Baseline" -Resources @('microsoft.entra.conditionalaccesspolicy')
+  5. New-UTCMSnapshot -DisplayName "My Baseline" -Resources @('microsoft.entra.authorizationpolicy')
 
 For detailed help on any function, use: Get-Help <Function-Name> -Detailed
 
