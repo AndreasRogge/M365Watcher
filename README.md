@@ -30,10 +30,13 @@ This PowerShell script provides comprehensive management of Microsoft's Unified 
 
 ## Supported Workloads
 
-- **Entra ID** (Authorization Policy, Administrative Units, Applications, Named Locations, Security Defaults, Groups, Role Definitions)
-- **Exchange Online** (Transport Rules, CAS Mailbox Plans, Anti-Phish, DKIM, Safe Links, Organization Config, and more)
-- **Security & Compliance** (DLP Compliance Policies, Label Policies)
-- **Microsoft Teams** (Meeting, Messaging, Calling, App Setup, Feedback Policies)
+- **Entra ID** - 13 verified types (Authorization Policy, Admin Units, Applications, Groups, Security Defaults, and more)
+- **Exchange Online** - 47 verified types (Transport Rules, Anti-Phish, Safe Links, Malware Filter, Connectors, and more)
+- **Microsoft Intune** - 4 verified types (Device Category, Policy Sets, Role Assignments, Role Definitions)
+- **Security & Compliance** - 10 verified types (DLP, Case Hold, Compliance Search, Label Policy, and more)
+- **Microsoft Teams** - 33 verified types (Meeting, Messaging, Calling, Voice Routing, and more)
+
+> **107 of 270 schema resource types confirmed working.** See [Resource Types Reference](#resource-types-reference) for the full list.
 
 ## Available Functions
 
@@ -322,38 +325,240 @@ $report | Format-Table -AutoSize
 
 ## Resource Types Reference
 
-### Entra ID Resources
+The UTCM schema defines [270+ resource types](https://www.schemastore.org/utcm-monitor.json). We tested all of them against the API - **107 confirmed working**, 163 returned errors.
+
+### Entra ID Resources (13 verified)
 - `microsoft.entra.administrativeunit`
 - `microsoft.entra.application`
 - `microsoft.entra.authorizationpolicy`
 - `microsoft.entra.group`
+- `microsoft.entra.grouplifecyclepolicy`
 - `microsoft.entra.namedlocationpolicy`
 - `microsoft.entra.roledefinition`
+- `microsoft.entra.rolesetting`
 - `microsoft.entra.securitydefaults`
+- `microsoft.entra.serviceprincipal`
+- `microsoft.entra.tenantdetails`
+- `microsoft.entra.tokenlifetimepolicy`
+- `microsoft.entra.user`
 
-### Exchange Online Resources
+### Exchange Online Resources (47 verified)
 - `microsoft.exchange.accepteddomain`
 - `microsoft.exchange.antiphishpolicy`
+- `microsoft.exchange.antiphishrule`
+- `microsoft.exchange.atppolicyforo365`
+- `microsoft.exchange.authenticationpolicy`
+- `microsoft.exchange.availabilityconfig`
+- `microsoft.exchange.calendarprocessing`
 - `microsoft.exchange.casmailboxplan`
+- `microsoft.exchange.casmailboxsettings`
+- `microsoft.exchange.dataclassification`
+- `microsoft.exchange.dataencryptionpolicy`
+- `microsoft.exchange.distributiongroup`
 - `microsoft.exchange.dkimsigningconfig`
+- `microsoft.exchange.emailaddresspolicy`
+- `microsoft.exchange.groupsettings`
+- `microsoft.exchange.inboundconnector`
+- `microsoft.exchange.irmconfiguration`
+- `microsoft.exchange.journalrule`
+- `microsoft.exchange.mailboxpermission`
 - `microsoft.exchange.mailboxplan`
+- `microsoft.exchange.mailboxsettings`
+- `microsoft.exchange.mailcontact`
+- `microsoft.exchange.mailtips`
+- `microsoft.exchange.malwarefilterpolicy`
+- `microsoft.exchange.malwarefilterrule`
+- `microsoft.exchange.managementrole`
+- `microsoft.exchange.omeconfiguration`
 - `microsoft.exchange.organizationconfig`
+- `microsoft.exchange.outboundconnector`
+- `microsoft.exchange.owamailboxpolicy`
+- `microsoft.exchange.partnerapplication`
+- `microsoft.exchange.place`
+- `microsoft.exchange.policytipconfig`
+- `microsoft.exchange.quarantinepolicy`
+- `microsoft.exchange.recipientpermission`
 - `microsoft.exchange.remotedomain`
+- `microsoft.exchange.reportsubmissionrule`
+- `microsoft.exchange.roleassignmentpolicy`
+- `microsoft.exchange.rolegroup`
+- `microsoft.exchange.safeattachmentpolicy`
+- `microsoft.exchange.safeattachmentrule`
 - `microsoft.exchange.safelinkspolicy`
+- `microsoft.exchange.safelinksrule`
+- `microsoft.exchange.sharedmailbox`
+- `microsoft.exchange.sharingpolicy`
+- `microsoft.exchange.transportconfig`
 - `microsoft.exchange.transportrule`
 
-### Security & Compliance Resources
+### Intune Resources (4 verified)
+- `microsoft.intune.devicecategory`
+- `microsoft.intune.policysets`
+- `microsoft.intune.roleassignment`
+- `microsoft.intune.roledefinition`
+
+### Security & Compliance Resources (10 verified)
+- `microsoft.securityandcompliance.caseholdpolicy`
+- `microsoft.securityandcompliance.caseholdrule`
+- `microsoft.securityandcompliance.compliancecase`
+- `microsoft.securityandcompliance.compliancesearch`
+- `microsoft.securityandcompliance.compliancetag`
 - `microsoft.securityandcompliance.dlpcompliancepolicy`
 - `microsoft.securityandcompliance.labelpolicy`
+- `microsoft.securityandcompliance.protectionalert`
+- `microsoft.securityandcompliance.retentioneventtype`
+- `microsoft.securityandcompliance.securityfilter`
 
-### Teams Resources
+### Teams Resources (33 verified)
 - `microsoft.teams.appsetuppolicy`
+- `microsoft.teams.callholdpolicy`
 - `microsoft.teams.callingpolicy`
+- `microsoft.teams.callparkpolicy`
+- `microsoft.teams.callqueue`
+- `microsoft.teams.channelspolicy`
+- `microsoft.teams.clientconfiguration`
+- `microsoft.teams.cortanapolicy`
+- `microsoft.teams.eventspolicy`
 - `microsoft.teams.feedbackpolicy`
+- `microsoft.teams.filespolicy`
+- `microsoft.teams.ipphonepolicy`
+- `microsoft.teams.meetingconfiguration`
 - `microsoft.teams.meetingpolicy`
 - `microsoft.teams.messagingpolicy`
+- `microsoft.teams.mobilitypolicy`
+- `microsoft.teams.networkroamingpolicy`
+- `microsoft.teams.onlinevoiceuser`
+- `microsoft.teams.pstnusage`
+- `microsoft.teams.shiftspolicy`
+- `microsoft.teams.templatespolicy`
+- `microsoft.teams.tenantdialplan`
+- `microsoft.teams.tenantnetworkregion`
+- `microsoft.teams.tenantnetworksite`
+- `microsoft.teams.tenantnetworksubnet`
+- `microsoft.teams.translationrule`
+- `microsoft.teams.upgradeconfiguration`
+- `microsoft.teams.upgradepolicy`
+- `microsoft.teams.user`
+- `microsoft.teams.vdipolicy`
+- `microsoft.teams.voiceroute`
+- `microsoft.teams.voiceroutingpolicy`
+- `microsoft.teams.workloadpolicy`
 
-> **Note:** The full UTCM schema defines 270+ resource types (see [schema](https://www.schemastore.org/utcm-monitor.json)), but not all are currently supported by the API. All `microsoft.intune.*` types and some `microsoft.entra.*` types (e.g., `conditionalaccesspolicy`, `authenticationmethodpolicy`) return BadRequest errors.
+### Unsupported Resource Types (163 failed)
+
+The following resource types are defined in the [UTCM schema](https://www.schemastore.org/utcm-monitor.json) but currently return `BadRequest` errors when used with the API.
+
+<details>
+<summary>Click to expand full list of unsupported types</summary>
+
+**Entra ID (26 failed):**
+- `microsoft.entra.attributeset`
+- `microsoft.entra.authenticationcontextclassreference`
+- `microsoft.entra.authenticationmethodpolicy`
+- `microsoft.entra.authenticationmethodpolicyauthenticator`
+- `microsoft.entra.authenticationmethodpolicyemail`
+- `microsoft.entra.authenticationmethodpolicyfido2`
+- `microsoft.entra.authenticationmethodpolicysms`
+- `microsoft.entra.authenticationmethodpolicysoftware`
+- `microsoft.entra.authenticationmethodpolicytemporary`
+- `microsoft.entra.authenticationmethodpolicyvoice`
+- `microsoft.entra.authenticationmethodpolicyx509`
+- `microsoft.entra.authenticationstrengthpolicy`
+- `microsoft.entra.conditionalaccesspolicy`
+- `microsoft.entra.crosstenantaccesspolicy`
+- `microsoft.entra.crosstenantaccesspolicyconfigurationdefault`
+- `microsoft.entra.crosstenantaccesspolicyconfigurationpartner`
+- `microsoft.entra.entitlementmanagementaccesspackage`
+- `microsoft.entra.entitlementmanagementaccesspackageassignmentpolicy`
+- `microsoft.entra.entitlementmanagementaccesspackagecatalog`
+- `microsoft.entra.entitlementmanagementaccesspackagecatalogresource`
+- `microsoft.entra.entitlementmanagementconnectedorganization`
+- `microsoft.entra.externalidentitypolicy`
+- `microsoft.entra.groupsnamingpolicy`
+- `microsoft.entra.groupssettings`
+- `microsoft.entra.roleeligibilityschedulerequest`
+- `microsoft.entra.socialidentityprovider`
+
+**Exchange Online (29 failed):**
+- `microsoft.exchange.activesyncdeviceaccessrule`
+- `microsoft.exchange.addressbookpolicy`
+- `microsoft.exchange.addresslist`
+- `microsoft.exchange.applicationaccesspolicy`
+- `microsoft.exchange.authenticationpolicyassignment`
+- `microsoft.exchange.availabilityaddressspace`
+- `microsoft.exchange.clientaccessrule`
+- `microsoft.exchange.eopprotectionpolicyrule`
+- `microsoft.exchange.externalinoutlook`
+- `microsoft.exchange.globaladdresslist`
+- `microsoft.exchange.hostedconnectionfilterpolicy`
+- `microsoft.exchange.hostedcontentfilterpolicy`
+- `microsoft.exchange.hostedcontentfilterrule`
+- `microsoft.exchange.hostedoutboundspamfilterpolicy`
+- `microsoft.exchange.hostedoutboundspamfilterrule`
+- `microsoft.exchange.intraorganizationconnector`
+- `microsoft.exchange.mailboxautoreplyconfiguration`
+- `microsoft.exchange.mailboxcalendarfolder`
+- `microsoft.exchange.managementroleassignment`
+- `microsoft.exchange.managementroleentry`
+- `microsoft.exchange.messageclassification`
+- `microsoft.exchange.mobiledevicemailboxpolicy`
+- `microsoft.exchange.offlineaddressbook`
+- `microsoft.exchange.onpremisesorganization`
+- `microsoft.exchange.organizationrelationship`
+- `microsoft.exchange.perimeterconfiguration`
+- `microsoft.exchange.reportsubmissionpolicy`
+- `microsoft.exchange.resourceconfiguration`
+- `microsoft.exchange.sweeprule`
+
+**Intune (65 failed):**
+All `microsoft.intune.*` types except `devicecategory`, `policysets`, `roleassignment`, and `roledefinition` are unsupported. This includes all device compliance, device configuration, app protection, WiFi configuration, Windows Autopilot, and Windows Update policies.
+
+**Security & Compliance (17 failed):**
+- `microsoft.securityandcompliance.auditconfigurationpolicy`
+- `microsoft.securityandcompliance.autosensitivitylabelpolicy`
+- `microsoft.securityandcompliance.autosensitivitylabelrule`
+- `microsoft.securityandcompliance.compliancesearchaction`
+- `microsoft.securityandcompliance.deviceconditionalaccesspolicy`
+- `microsoft.securityandcompliance.deviceconfigurationpolicy`
+- `microsoft.securityandcompliance.dlpcompliancerule`
+- `microsoft.securityandcompliance.fileplanpropertyauthority`
+- `microsoft.securityandcompliance.fileplanpropertycategory`
+- `microsoft.securityandcompliance.fileplanpropertycitation`
+- `microsoft.securityandcompliance.fileplanpropertydepartment`
+- `microsoft.securityandcompliance.fileplanpropertyreferenceid`
+- `microsoft.securityandcompliance.fileplanpropertysubcategory`
+- `microsoft.securityandcompliance.retentioncompliancepolicy`
+- `microsoft.securityandcompliance.sensitivitylabel`
+- `microsoft.securityandcompliance.supervisoryreviewpolicy`
+- `microsoft.securityandcompliance.supervisoryreviewrule`
+
+**Teams (26 failed):**
+- `microsoft.teams.audioconferencingpolicy`
+- `microsoft.teams.channel`
+- `microsoft.teams.channeltab`
+- `microsoft.teams.compliancerecordingpolicy`
+- `microsoft.teams.dialinconferencingtenantsettings`
+- `microsoft.teams.emergencycallingpolicy`
+- `microsoft.teams.emergencycallroutingpolicy`
+- `microsoft.teams.enhancedencryptionpolicy`
+- `microsoft.teams.federationconfiguration`
+- `microsoft.teams.grouppolicyassignment`
+- `microsoft.teams.guestcallingconfiguration`
+- `microsoft.teams.guestmeetingconfiguration`
+- `microsoft.teams.guestmessagingconfiguration`
+- `microsoft.teams.meetingbroadcastconfiguration`
+- `microsoft.teams.meetingbroadcastpolicy`
+- `microsoft.teams.onlinevoicemailpolicy`
+- `microsoft.teams.onlinevoicemailusersettings`
+- `microsoft.teams.orgwideappsettings`
+- `microsoft.teams.team`
+- `microsoft.teams.tenanttrustedipaddress`
+- `microsoft.teams.unassignednumbertreatment`
+- `microsoft.teams.updatemanagementpolicy`
+- `microsoft.teams.usercallingsettings`
+- `microsoft.teams.userpolicyassignment`
+
+</details>
 
 ## Required Permissions by Resource Type
 
@@ -363,6 +568,7 @@ $report | Format-Table -AutoSize
 | Entra ID Groups/Apps | Directory.Read.All |
 | Entra ID Role Definitions | RoleManagement.Read.Directory |
 | Exchange Online | Exchange.ManageAsApp |
+| Intune | DeviceManagementConfiguration.Read.All |
 | Security & Compliance | Policy.Read.All |
 | Teams Policies | TeamworkConfiguration.Read.All |
 
@@ -549,6 +755,10 @@ if ($drifts.Count -gt 0) {
 ## Additional Resources
 
 - [Official Microsoft Documentation](https://learn.microsoft.com/en-us/graph/api/resources/unified-tenant-configuration-management-api-overview)
+- [UTCM Entra ID Resources](https://learn.microsoft.com/en-us/graph/utcm-entra-resources)
+- [UTCM Exchange Resources](https://learn.microsoft.com/en-us/graph/utcm-exchange-resources)
+- [UTCM Teams Resources](https://learn.microsoft.com/en-us/graph/utcm-teams-resources)
+- [UTCM Schema (270+ resource types)](https://www.schemastore.org/utcm-monitor.json)
 - [Microsoft Graph Explorer](https://developer.microsoft.com/en-us/graph/graph-explorer)
 - [UTCM API Reference - List Snapshot Jobs](https://learn.microsoft.com/en-us/graph/api/configurationmanagement-list-configurationsnapshotjobs?view=graph-rest-beta)
 - [UTCM API Reference - Create Snapshot](https://learn.microsoft.com/en-us/graph/api/configurationbaseline-createsnapshot?view=graph-rest-beta)
@@ -557,6 +767,7 @@ if ($drifts.Count -gt 0) {
 ## Version History
 
 ### Latest Version
+- ✅ **107 verified resource types** across 5 workloads (tested all 270 schema types)
 - ✅ Added interactive menu interface for easier management
 - ✅ Enhanced snapshot selection with numbered lists and color-coded status
 - ✅ Smart UX for Delete Snapshot and Create Monitor operations
@@ -567,7 +778,7 @@ if ($drifts.Count -gt 0) {
 - ✅ Improved error handling and user feedback
 - ✅ Added display name validation (8-32 characters for monitors)
 - ✅ Added comprehensive troubleshooting guide
-- ✅ Support for all UTCM operations (snapshots, monitors, drift detection)
+- ✅ Complete resource type compatibility reference with pass/fail results
 
 ## License
 
