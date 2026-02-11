@@ -10,6 +10,9 @@ This PowerShell script provides comprehensive management of Microsoft's Unified 
 
 - ✅ **Interactive Menu Interface** - User-friendly menu for all operations
 - ✅ **Complete UTCM Management** - All snapshot, monitor, and drift operations
+- ✅ **Resilient API Layer** - Automatic retry with exponential backoff (429/503/504), pagination, structured error parsing
+- ✅ **Resource Type Validation** - 107 verified types validated before API calls
+- ✅ **Safe Operations** - `-WhatIf`/`-Confirm` support on all destructive operations
 - ✅ **Service Principal Setup** - Automated UTCM service principal creation
 - ✅ **Permission Management** - Grant and verify required permissions
 - ✅ **Drift Detection** - Monitor configuration changes across workloads
@@ -767,6 +770,11 @@ if ($drifts.Count -gt 0) {
 ## Version History
 
 ### Latest Version
+- ✅ **Resilient API layer** with automatic retry, exponential backoff, and Retry-After header support
+- ✅ **Automatic pagination** for all Graph API list endpoints via `@odata.nextLink`
+- ✅ **Structured error parsing** extracts error code, message, and request-id from Graph API responses
+- ✅ **Resource type validation** against 107 verified types before snapshot creation
+- ✅ **ShouldProcess support** (`-WhatIf`/`-Confirm`) on all destructive and state-changing operations
 - ✅ **107 verified resource types** across 5 workloads (tested all 270 schema types)
 - ✅ Added interactive menu interface for easier management
 - ✅ Enhanced snapshot selection with numbered lists and color-coded status

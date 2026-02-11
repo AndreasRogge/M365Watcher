@@ -34,6 +34,222 @@ param(
 $script:UTCMAppId = "03b07b79-c5bc-4b5e-9bfa-13acf4a99998"
 $script:GraphAppId = "00000003-0000-0000-c000-000000000000"
 
+# Verified resource types (107 confirmed working via API testing)
+$script:VerifiedResourceTypes = @(
+    'microsoft.entra.administrativeunit','microsoft.entra.application','microsoft.entra.authorizationpolicy',
+    'microsoft.entra.group','microsoft.entra.grouplifecyclepolicy','microsoft.entra.namedlocationpolicy',
+    'microsoft.entra.roledefinition','microsoft.entra.rolesetting','microsoft.entra.securitydefaults',
+    'microsoft.entra.serviceprincipal','microsoft.entra.tenantdetails','microsoft.entra.tokenlifetimepolicy',
+    'microsoft.entra.user',
+    'microsoft.exchange.accepteddomain','microsoft.exchange.antiphishpolicy','microsoft.exchange.antiphishrule',
+    'microsoft.exchange.atppolicyforo365','microsoft.exchange.authenticationpolicy','microsoft.exchange.availabilityconfig',
+    'microsoft.exchange.calendarprocessing','microsoft.exchange.casmailboxplan','microsoft.exchange.casmailboxsettings',
+    'microsoft.exchange.dataclassification','microsoft.exchange.dataencryptionpolicy','microsoft.exchange.distributiongroup',
+    'microsoft.exchange.dkimsigningconfig','microsoft.exchange.emailaddresspolicy','microsoft.exchange.groupsettings',
+    'microsoft.exchange.inboundconnector','microsoft.exchange.irmconfiguration','microsoft.exchange.journalrule',
+    'microsoft.exchange.mailboxpermission','microsoft.exchange.mailboxplan','microsoft.exchange.mailboxsettings',
+    'microsoft.exchange.mailcontact','microsoft.exchange.mailtips','microsoft.exchange.malwarefilterpolicy',
+    'microsoft.exchange.malwarefilterrule','microsoft.exchange.managementrole','microsoft.exchange.omeconfiguration',
+    'microsoft.exchange.organizationconfig','microsoft.exchange.outboundconnector','microsoft.exchange.owamailboxpolicy',
+    'microsoft.exchange.partnerapplication','microsoft.exchange.place','microsoft.exchange.policytipconfig',
+    'microsoft.exchange.quarantinepolicy','microsoft.exchange.recipientpermission','microsoft.exchange.remotedomain',
+    'microsoft.exchange.reportsubmissionrule','microsoft.exchange.roleassignmentpolicy','microsoft.exchange.rolegroup',
+    'microsoft.exchange.safeattachmentpolicy','microsoft.exchange.safeattachmentrule','microsoft.exchange.safelinkspolicy',
+    'microsoft.exchange.safelinksrule','microsoft.exchange.sharedmailbox','microsoft.exchange.sharingpolicy',
+    'microsoft.exchange.transportconfig','microsoft.exchange.transportrule',
+    'microsoft.intune.devicecategory','microsoft.intune.policysets','microsoft.intune.roleassignment',
+    'microsoft.intune.roledefinition',
+    'microsoft.securityandcompliance.caseholdpolicy','microsoft.securityandcompliance.caseholdrule',
+    'microsoft.securityandcompliance.compliancecase','microsoft.securityandcompliance.compliancesearch',
+    'microsoft.securityandcompliance.compliancetag','microsoft.securityandcompliance.dlpcompliancepolicy',
+    'microsoft.securityandcompliance.labelpolicy','microsoft.securityandcompliance.protectionalert',
+    'microsoft.securityandcompliance.retentioneventtype','microsoft.securityandcompliance.securityfilter',
+    'microsoft.teams.appsetuppolicy','microsoft.teams.callholdpolicy','microsoft.teams.callingpolicy',
+    'microsoft.teams.callparkpolicy','microsoft.teams.callqueue','microsoft.teams.channelspolicy',
+    'microsoft.teams.clientconfiguration','microsoft.teams.cortanapolicy','microsoft.teams.eventspolicy',
+    'microsoft.teams.feedbackpolicy','microsoft.teams.filespolicy','microsoft.teams.ipphonepolicy',
+    'microsoft.teams.meetingconfiguration','microsoft.teams.meetingpolicy','microsoft.teams.messagingpolicy',
+    'microsoft.teams.mobilitypolicy','microsoft.teams.networkroamingpolicy','microsoft.teams.onlinevoiceuser',
+    'microsoft.teams.pstnusage','microsoft.teams.shiftspolicy','microsoft.teams.templatespolicy',
+    'microsoft.teams.tenantdialplan','microsoft.teams.tenantnetworkregion','microsoft.teams.tenantnetworksite',
+    'microsoft.teams.tenantnetworksubnet','microsoft.teams.translationrule','microsoft.teams.upgradeconfiguration',
+    'microsoft.teams.upgradepolicy','microsoft.teams.user','microsoft.teams.vdipolicy',
+    'microsoft.teams.voiceroute','microsoft.teams.voiceroutingpolicy','microsoft.teams.workloadpolicy'
+)
+
+#region Core Infrastructure
+
+<#
+.SYNOPSIS
+    Central API wrapper with retry logic, pagination, and structured error handling
+.DESCRIPTION
+    Wraps Invoke-MgGraphRequest with exponential backoff retry for 429/503/504,
+    automatic @odata.nextLink pagination for GET requests, and structured error parsing.
+.PARAMETER Uri
+    The Graph API URI (relative or absolute)
+.PARAMETER Method
+    HTTP method (GET, POST, PATCH, DELETE). Default: GET
+.PARAMETER Body
+    Request body hashtable for POST/PATCH
+.PARAMETER MaxRetries
+    Maximum retry attempts for retryable errors. Default: 3
+.PARAMETER NoPagination
+    Skip automatic pagination (use for single-item GETs)
+#>
+function Invoke-UTCMGraphRequest {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Uri,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateSet('GET','POST','PATCH','DELETE')]
+        [string]$Method = 'GET',
+
+        [Parameter(Mandatory = $false)]
+        [hashtable]$Body,
+
+        [Parameter(Mandatory = $false)]
+        [int]$MaxRetries = 3,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$NoPagination
+    )
+
+    $attempt = 0
+    $lastError = $null
+
+    while ($attempt -le $MaxRetries) {
+        try {
+            $params = @{
+                Uri        = $Uri
+                Method     = $Method
+                OutputType = 'PSObject'
+            }
+            if ($Body) {
+                $params['Body'] = ($Body | ConvertTo-Json -Depth 20)
+                $params['ContentType'] = 'application/json'
+            }
+
+            $response = Invoke-MgGraphRequest @params
+
+            # Handle pagination for GET list requests
+            if ($Method -eq 'GET' -and -not $NoPagination -and $response.value -is [System.Collections.IEnumerable]) {
+                $allItems = [System.Collections.ArrayList]::new()
+                $allItems.AddRange(@($response.value))
+
+                while ($response.'@odata.nextLink') {
+                    $response = Invoke-MgGraphRequest -Uri $response.'@odata.nextLink' -Method GET -OutputType PSObject
+                    if ($response.value) {
+                        $allItems.AddRange(@($response.value))
+                    }
+                }
+
+                # Return object with .value for consistent interface
+                return [PSCustomObject]@{ value = $allItems }
+            }
+
+            return $response
+        }
+        catch {
+            $lastError = $_
+            $statusCode = 0
+            $errorCode = ''
+            $errorMessage = ''
+            $requestId = ''
+
+            # Parse structured error from Graph API response
+            $errText = $_.Exception.Message
+            if ($_.ErrorDetails.Message) {
+                $errText = $_.ErrorDetails.Message
+            }
+
+            # Try to extract JSON error details
+            try {
+                $errJson = $null
+                if ($errText -match '\{.*"error".*\}') {
+                    $errJson = $Matches[0] | ConvertFrom-Json
+                }
+                if ($errJson.error) {
+                    $errorCode = $errJson.error.code
+                    $errorMessage = $errJson.error.message
+                    if ($errJson.error.innerError.'request-id') {
+                        $requestId = $errJson.error.innerError.'request-id'
+                    }
+                }
+            } catch { }
+
+            # Extract HTTP status code
+            if ($errText -match '(\d{3})') {
+                $statusCode = [int]$Matches[1]
+            }
+
+            # Retry on throttling (429) or service errors (503, 504)
+            if ($statusCode -in @(429, 503, 504) -and $attempt -lt $MaxRetries) {
+                $attempt++
+                $waitSeconds = [math]::Pow(2, $attempt)
+
+                # Honor Retry-After header if present
+                if ($errText -match 'Retry-After[:\s]+(\d+)') {
+                    $waitSeconds = [int]$Matches[1]
+                }
+
+                Write-Warning "Request throttled/failed (HTTP $statusCode). Retrying in ${waitSeconds}s (attempt $attempt/$MaxRetries)..."
+                Start-Sleep -Seconds $waitSeconds
+                continue
+            }
+
+            # Build informative error message
+            $friendlyMessage = if ($errorMessage) {
+                "Graph API Error [$errorCode]: $errorMessage"
+            } else {
+                "Graph API Error: $errText"
+            }
+            if ($requestId) {
+                $friendlyMessage += " (Request ID: $requestId)"
+            }
+
+            throw $friendlyMessage
+        }
+    }
+
+    # All retries exhausted
+    throw "Request failed after $MaxRetries retries. Last error: $($lastError.Exception.Message)"
+}
+
+<#
+.SYNOPSIS
+    Validates a resource type against the list of verified working types
+.PARAMETER ResourceType
+    The resource type string to validate
+.PARAMETER Strict
+    If set, throws an error for unverified types instead of returning $false
+#>
+function Test-UTCMResourceType {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ResourceType,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$Strict
+    )
+
+    $normalized = $ResourceType.Trim().ToLower()
+    if ($normalized -in $script:VerifiedResourceTypes) {
+        return $true
+    }
+
+    if ($Strict) {
+        throw "Resource type '$ResourceType' is not in the verified list. Use Get-UTCMResourceTypes to see supported types."
+    }
+
+    Write-Warning "Resource type '$ResourceType' is not in the verified list (107 confirmed types). It may not be supported by the API."
+    return $false
+}
+
+#endregion
+
 #region Connection Functions
 
 <#
@@ -83,7 +299,7 @@ function Test-UTCMAvailability {
         Write-Host "Testing UTCM availability..." -ForegroundColor Cyan
 
         $uri = "beta/admin/configurationManagement/configurationSnapshotJobs"
-        $result = Invoke-MgGraphRequest -Uri $uri -Method GET -ErrorAction Stop
+        $result = Invoke-UTCMGraphRequest -Uri $uri -Method GET -NoPagination
         
         Write-Host "UTCM is available in this tenant!" -ForegroundColor Green
         return $true
@@ -107,29 +323,30 @@ function Test-UTCMAvailability {
     Creates the UTCM service principal in the tenant
 #>
 function Initialize-UTCMServicePrincipal {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     param()
-    
+
     try {
         Write-Host "Checking if UTCM service principal exists..." -ForegroundColor Cyan
         
         # Check if service principal already exists
         $uri = "v1.0/servicePrincipals?`$filter=appId eq '$script:UTCMAppId'"
-        $existingSP = Invoke-MgGraphRequest -Uri $uri -Method GET -OutputType PSObject
-        
+        $existingSP = Invoke-UTCMGraphRequest -Uri $uri -Method GET -NoPagination
+
         if ($existingSP.value.Count -gt 0) {
             Write-Host "UTCM service principal already exists." -ForegroundColor Yellow
             Write-Host "Object ID: $($existingSP.value[0].id)" -ForegroundColor Green
             return $existingSP.value[0]
         }
-        
+
         Write-Host "Creating UTCM service principal..." -ForegroundColor Cyan
-        
+
         $body = @{
             appId = $script:UTCMAppId
         }
-        
-        $newSP = Invoke-MgGraphRequest -Uri "v1.0/servicePrincipals" -Method POST -Body $body -OutputType PSObject
+
+        if (-not $PSCmdlet.ShouldProcess("UTCM Service Principal", "Create")) { return $null }
+        $newSP = Invoke-UTCMGraphRequest -Uri "v1.0/servicePrincipals" -Method POST -Body $body
         
         Write-Host "UTCM service principal created successfully!" -ForegroundColor Green
         Write-Host "Display Name: $($newSP.displayName)" -ForegroundColor Green
@@ -149,7 +366,7 @@ function Initialize-UTCMServicePrincipal {
     Grants permissions to the UTCM service principal
 #>
 function Grant-UTCMPermissions {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory = $true)]
         [string[]]$Permissions
@@ -160,15 +377,17 @@ function Grant-UTCMPermissions {
         
         # Get Graph service principal
         $graphUri = "v1.0/servicePrincipals?`$filter=appId eq '$script:GraphAppId'"
-        $graph = Invoke-MgGraphRequest -Uri $graphUri -Method GET -OutputType PSObject | Select-Object -ExpandProperty value
-        
+        $graphResult = Invoke-UTCMGraphRequest -Uri $graphUri -Method GET -NoPagination
+        $graph = $graphResult.value
+
         if (-not $graph) {
             throw "Microsoft Graph service principal not found"
         }
-        
+
         # Get UTCM service principal
         $utcmUri = "v1.0/servicePrincipals?`$filter=appId eq '$script:UTCMAppId'"
-        $utcm = Invoke-MgGraphRequest -Uri $utcmUri -Method GET -OutputType PSObject | Select-Object -ExpandProperty value
+        $utcmResult = Invoke-UTCMGraphRequest -Uri $utcmUri -Method GET -NoPagination
+        $utcm = $utcmResult.value
         
         if (-not $utcm) {
             throw "UTCM service principal not found. Run Initialize-UTCMServicePrincipal first."
@@ -187,7 +406,7 @@ function Grant-UTCMPermissions {
             
             # Check if permission already granted
             $existingUri = "v1.0/servicePrincipals/$($utcm.id)/appRoleAssignments"
-            $existing = Invoke-MgGraphRequest -Uri $existingUri -Method GET -OutputType PSObject
+            $existing = Invoke-UTCMGraphRequest -Uri $existingUri -Method GET
 
             # Filter in PowerShell since appRoleId doesn't support OData filters
             $alreadyGranted = $existing.value | Where-Object { $_.appRoleId -eq $appRole.id }
@@ -205,7 +424,9 @@ function Grant-UTCMPermissions {
             }
             
             $assignUri = "v1.0/servicePrincipals/$($utcm.id)/appRoleAssignments"
-            Invoke-MgGraphRequest -Uri $assignUri -Method POST -Body $body | Out-Null
+            if ($PSCmdlet.ShouldProcess("Permission '$permission'", "Grant to UTCM SP")) {
+                Invoke-UTCMGraphRequest -Uri $assignUri -Method POST -Body $body | Out-Null
+            } else { continue }
             
             Write-Host "    Permission granted successfully" -ForegroundColor Green
         }
@@ -226,29 +447,35 @@ function Grant-UTCMPermissions {
     Creates a new configuration snapshot
 #>
 function New-UTCMSnapshot {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory = $true)]
         [string]$DisplayName,
-        
+
         [Parameter(Mandatory = $false)]
         [string]$Description,
-        
+
         [Parameter(Mandatory = $true)]
         [string[]]$Resources
     )
-    
+
     try {
+        # Validate resource types
+        foreach ($rt in $Resources) {
+            Test-UTCMResourceType -ResourceType $rt | Out-Null
+        }
+
         Write-Host "Creating configuration snapshot: $DisplayName" -ForegroundColor Cyan
-        
+
         $body = @{
             displayName = $DisplayName
             description = $Description
             resources = $Resources
         }
-        
+
+        if (-not $PSCmdlet.ShouldProcess("Snapshot '$DisplayName'", "Create")) { return $null }
         $uri = "beta/admin/configurationManagement/configurationSnapshots/createSnapshot"
-        $snapshot = Invoke-MgGraphRequest -Uri $uri -Method POST -Body $body -OutputType PSObject
+        $snapshot = Invoke-UTCMGraphRequest -Uri $uri -Method POST -Body $body
         
         Write-Host "Snapshot created successfully!" -ForegroundColor Green
         Write-Host "Job ID: $($snapshot.id)" -ForegroundColor Green
@@ -282,11 +509,11 @@ function Get-UTCMSnapshot {
             Write-Host "Retrieving all snapshots..." -ForegroundColor Cyan
         }
         
-        $result = Invoke-MgGraphRequest -Uri $uri -Method GET -OutputType PSObject
-        
         if ($SnapshotId) {
+            $result = Invoke-UTCMGraphRequest -Uri $uri -Method GET -NoPagination
             return $result
         } else {
+            $result = Invoke-UTCMGraphRequest -Uri $uri -Method GET
             return $result.value
         }
     }
@@ -312,7 +539,7 @@ function Remove-UTCMSnapshot {
             Write-Host "Deleting snapshot: $SnapshotId" -ForegroundColor Cyan
 
             $uri = "beta/admin/configurationManagement/configurationSnapshotJobs/$SnapshotId"
-            Invoke-MgGraphRequest -Uri $uri -Method DELETE
+            Invoke-UTCMGraphRequest -Uri $uri -Method DELETE | Out-Null
             
             Write-Host "Snapshot deleted successfully!" -ForegroundColor Green
         }
@@ -331,7 +558,7 @@ function Remove-UTCMSnapshot {
     Creates a new configuration monitor
 #>
 function New-UTCMMonitor {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory = $true)]
         [string]$DisplayName,
@@ -377,7 +604,7 @@ function New-UTCMMonitor {
 
         # Fetch the actual baseline configuration from the resource location
         try {
-            $baselineConfig = Invoke-MgGraphRequest -Uri $snapshot.resourceLocation -Method GET -OutputType PSObject
+            $baselineConfig = Invoke-UTCMGraphRequest -Uri $snapshot.resourceLocation -Method GET -NoPagination
         }
         catch {
             Write-Error "Failed to retrieve baseline configuration from resourceLocation: $_"
@@ -402,8 +629,9 @@ function New-UTCMMonitor {
             }
         }
 
+        if (-not $PSCmdlet.ShouldProcess("Monitor '$DisplayName'", "Create")) { return $null }
         $uri = "beta/admin/configurationManagement/configurationMonitors"
-        $monitor = Invoke-MgGraphRequest -Uri $uri -Method POST -Body $body -OutputType PSObject
+        $monitor = Invoke-UTCMGraphRequest -Uri $uri -Method POST -Body $body
 
         Write-Host "Monitor created successfully!" -ForegroundColor Green
         Write-Host "Monitor ID: $($monitor.id)" -ForegroundColor Green
@@ -435,19 +663,19 @@ function Get-UTCMMonitor {
         if ($MonitorId) {
             $uri = "beta/admin/configurationManagement/configurationMonitors/$MonitorId"
             Write-Host "Retrieving monitor: $MonitorId" -ForegroundColor Cyan
-            $result = Invoke-MgGraphRequest -Uri $uri -Method GET -OutputType PSObject
+            $result = Invoke-UTCMGraphRequest -Uri $uri -Method GET -NoPagination
             return $result
         }
         elseif ($DisplayName) {
             $uri = "beta/admin/configurationManagement/configurationMonitors/?`$filter=displayName eq '$DisplayName'"
             Write-Host "Retrieving monitor by name: $DisplayName" -ForegroundColor Cyan
-            $result = Invoke-MgGraphRequest -Uri $uri -Method GET -OutputType PSObject
+            $result = Invoke-UTCMGraphRequest -Uri $uri -Method GET
             return $result.value
         }
         else {
             $uri = "beta/admin/configurationManagement/configurationMonitors"
             Write-Host "Retrieving all monitors..." -ForegroundColor Cyan
-            $result = Invoke-MgGraphRequest -Uri $uri -Method GET -OutputType PSObject
+            $result = Invoke-UTCMGraphRequest -Uri $uri -Method GET
             return $result.value
         }
     }
@@ -473,7 +701,7 @@ function Remove-UTCMMonitor {
             Write-Host "Deleting monitor: $MonitorId" -ForegroundColor Cyan
             
             $uri = "beta/admin/configurationManagement/configurationMonitors/$MonitorId"
-            Invoke-MgGraphRequest -Uri $uri -Method DELETE
+            Invoke-UTCMGraphRequest -Uri $uri -Method DELETE | Out-Null
             
             Write-Host "Monitor deleted successfully!" -ForegroundColor Green
         }
@@ -488,27 +716,28 @@ function Remove-UTCMMonitor {
     Updates a configuration monitor's baseline
 #>
 function Update-UTCMMonitorBaseline {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory = $true)]
         [string]$MonitorId,
-        
+
         [Parameter(Mandatory = $true)]
         [string]$NewBaselineSnapshotId
     )
-    
+
     try {
         Write-Host "Updating monitor baseline..." -ForegroundColor Cyan
         Write-Warning "Note: Updating baseline will delete all previous monitoring results and drifts for this monitor."
-        
+
         $body = @{
             baselineSnapshot = @{
                 id = $NewBaselineSnapshotId
             }
         }
-        
+
+        if (-not $PSCmdlet.ShouldProcess("Monitor '$MonitorId'", "Update baseline (deletes drift history)")) { return $null }
         $uri = "beta/admin/configurationManagement/configurationMonitors/$MonitorId"
-        $result = Invoke-MgGraphRequest -Uri $uri -Method PATCH -Body $body -OutputType PSObject
+        $result = Invoke-UTCMGraphRequest -Uri $uri -Method PATCH -Body $body
         
         Write-Host "Monitor baseline updated successfully!" -ForegroundColor Green
         return $result
@@ -560,14 +789,14 @@ function Get-UTCMDrift {
         
         Write-Host "Retrieving configuration drifts..." -ForegroundColor Cyan
         
-        $result = Invoke-MgGraphRequest -Uri $uri -Method GET -OutputType PSObject
-        
+        $result = Invoke-UTCMGraphRequest -Uri $uri -Method GET
+
         if ($result.value.Count -eq 0) {
             Write-Host "No drifts found." -ForegroundColor Yellow
         } else {
             Write-Host "Found $($result.value.Count) drift(s)" -ForegroundColor Green
         }
-        
+
         return $result.value
     }
     catch {
@@ -591,7 +820,7 @@ function Get-UTCMDriftDetail {
         Write-Host "Retrieving drift details: $DriftId" -ForegroundColor Cyan
         
         $uri = "beta/admin/configurationManagement/configurationDrifts/$DriftId"
-        $result = Invoke-MgGraphRequest -Uri $uri -Method GET -OutputType PSObject
+        $result = Invoke-UTCMGraphRequest -Uri $uri -Method GET -NoPagination
         
         return $result
     }
@@ -623,19 +852,19 @@ function Get-UTCMMonitoringResult {
         if ($ResultId) {
             $uri = "beta/admin/configurationManagement/configurationMonitoringResults/$ResultId"
             Write-Host "Retrieving monitoring result: $ResultId" -ForegroundColor Cyan
-            $result = Invoke-MgGraphRequest -Uri $uri -Method GET -OutputType PSObject
+            $result = Invoke-UTCMGraphRequest -Uri $uri -Method GET -NoPagination
             return $result
         }
         elseif ($MonitorId) {
             $uri = "beta/admin/configurationManagement/configurationMonitoringResults?`$filter=monitorId eq '$MonitorId'"
             Write-Host "Retrieving monitoring results for monitor: $MonitorId" -ForegroundColor Cyan
-            $result = Invoke-MgGraphRequest -Uri $uri -Method GET -OutputType PSObject
+            $result = Invoke-UTCMGraphRequest -Uri $uri -Method GET
             return $result.value
         }
         else {
             $uri = "beta/admin/configurationManagement/configurationMonitoringResults"
             Write-Host "Retrieving all monitoring results..." -ForegroundColor Cyan
-            $result = Invoke-MgGraphRequest -Uri $uri -Method GET -OutputType PSObject
+            $result = Invoke-UTCMGraphRequest -Uri $uri -Method GET
             return $result.value
         }
     }
