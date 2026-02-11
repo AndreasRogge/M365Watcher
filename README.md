@@ -769,24 +769,9 @@ if ($drifts.Count -gt 0) {
 
 ## Version History
 
-### Latest Version
-- ✅ **Resilient API layer** with automatic retry, exponential backoff, and Retry-After header support
-- ✅ **Automatic pagination** for all Graph API list endpoints via `@odata.nextLink`
-- ✅ **Structured error parsing** extracts error code, message, and request-id from Graph API responses
-- ✅ **Resource type validation** against 107 verified types before snapshot creation
-- ✅ **ShouldProcess support** (`-WhatIf`/`-Confirm`) on all destructive and state-changing operations
-- ✅ **107 verified resource types** across 5 workloads (tested all 270 schema types)
-- ✅ Added interactive menu interface for easier management
-- ✅ Enhanced snapshot selection with numbered lists and color-coded status
-- ✅ Smart UX for Delete Snapshot and Create Monitor operations
-- ✅ Fixed API endpoint issues (using correct configurationSnapshotJobs endpoints)
-- ✅ Fixed permission granting (appRoleId filter workaround)
-- ✅ Fixed monitor creation to properly retrieve baseline from snapshot resourceLocation
-- ✅ Added UTCM availability testing
-- ✅ Improved error handling and user feedback
-- ✅ Added display name validation (8-32 characters for monitors)
-- ✅ Added comprehensive troubleshooting guide
-- ✅ Complete resource type compatibility reference with pass/fail results
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
+
+**Current version: 1.2.0** - Resilient API layer, resource validation, ShouldProcess support
 
 ## License
 
