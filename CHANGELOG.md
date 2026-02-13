@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.3.0] - 2026-02-12
+
+### Added
+- **Pester unit tests** - 30+ tests covering resource validation, retry logic, pagination, error parsing, ShouldProcess, and parameter validation
+- **Pester integration tests** - Full lifecycle tests (snapshot create/list/delete, monitor create/list/delete, drift queries) against a real tenant
+- **GitHub Actions CI/CD pipeline** with 3 jobs:
+  - PSScriptAnalyzer linting (runs on every push and PR)
+  - Pester unit tests with code coverage (runs on every push and PR)
+  - Integration tests against test tenant (runs on push to main, requires `test-tenant` environment with secrets)
+
 ## [1.2.0] - 2026-02-11
 
 ### Added

@@ -767,11 +767,40 @@ if ($drifts.Count -gt 0) {
 - [UTCM API Reference - Create Snapshot](https://learn.microsoft.com/en-us/graph/api/configurationbaseline-createsnapshot?view=graph-rest-beta)
 - [Microsoft 365 DSC to UTCM Migration](https://microsoft365dsc.com/)
 
+## Testing
+
+### Unit Tests (no tenant required)
+
+```powershell
+Install-Module -Name Pester -MinimumVersion 5.0.0 -Force
+Invoke-Pester ./tests/UTCM-Management.Tests.ps1 -Output Detailed
+```
+
+### Integration Tests (requires test tenant)
+
+Set environment variables and run:
+
+```powershell
+$env:AZURE_TENANT_ID = 'your-tenant-id'
+$env:AZURE_CLIENT_ID = 'your-client-id'
+$env:AZURE_CLIENT_SECRET = 'your-client-secret'
+Invoke-Pester ./tests/UTCM-Management.Integration.Tests.ps1 -Output Detailed
+```
+
+The App Registration needs `ConfigurationMonitoring.ReadWrite.All` (Application) permission with admin consent.
+
+### CI/CD
+
+The GitHub Actions pipeline runs automatically on push and PR:
+- **Lint** - PSScriptAnalyzer checks for warnings and errors
+- **Unit Tests** - Pester tests with code coverage
+- **Integration Tests** - Runs on push to `main` using the `test-tenant` environment secrets (`AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`)
+
 ## Version History
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
-**Current version: 1.2.0** - Resilient API layer, resource validation, ShouldProcess support
+**Current version: 1.3.0** - Pester tests, PSScriptAnalyzer linting, GitHub Actions CI/CD
 
 ## License
 
