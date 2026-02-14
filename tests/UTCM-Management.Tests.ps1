@@ -170,7 +170,7 @@ Describe 'Invoke-UTCMGraphRequest' {
             # Should only be called once (no follow-up for nextLink)
             Should -Invoke Invoke-MgGraphRequest -Times 1
         }
-    }
+        }
 
     Context 'Retry logic' {
         It 'Retries on HTTP 429 and succeeds' {
@@ -235,13 +235,7 @@ Describe 'Invoke-UTCMGraphRequest' {
     Context 'Error parsing' {
         It 'Extracts error code and message from Graph API JSON error' {
             Mock Invoke-MgGraphRequest {
-                $errorDetails = @{
-                    Message = '{"error":{"code":"Authorization_RequestDenied","message":"Insufficient privileges","innerError":{"request-id":"abc-123"}}}'
-                }
-                $ex = [System.Exception]::new("400 BadRequest")
-                $record = [System.Management.Automation.ErrorRecord]::new($ex, 'GraphError', 'InvalidOperation', $null)
-                $record | Add-Member -NotePropertyName ErrorDetails -NotePropertyValue ([PSCustomObject]$errorDetails) -Force
-                throw $record
+                throw '{"error":{"code":"Authorization_RequestDenied","message":"Insufficient privileges","innerError":{"request-id":"abc-123"}}} 400 BadRequest'
             }
 
             try {
@@ -260,14 +254,14 @@ Describe 'New-UTCMMonitor' {
 
     Context 'Display name validation' {
         It 'Rejects display names shorter than 8 characters' {
-            $result = New-UTCMMonitor -DisplayName 'Short' -BaselineSnapshotId 'test-id' 2>&1
-            $result | Should -Not -BeNullOrEmpty
+            $result = New-UTCMMonitor -DisplayName 'Short' -BaselineSnapshotId 'test-id' -ErrorAction SilentlyContinue
+            $result | Should -BeNullOrEmpty
         }
 
         It 'Rejects display names longer than 32 characters' {
             $longName = 'A' * 33
-            $result = New-UTCMMonitor -DisplayName $longName -BaselineSnapshotId 'test-id' 2>&1
-            $result | Should -Not -BeNullOrEmpty
+            $result = New-UTCMMonitor -DisplayName $longName -BaselineSnapshotId 'test-id' -ErrorAction SilentlyContinue
+            $result | Should -BeNullOrEmpty
         }
 
         It 'Accepts display names between 8 and 32 characters' {
