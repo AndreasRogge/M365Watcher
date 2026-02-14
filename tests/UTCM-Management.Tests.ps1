@@ -90,10 +90,7 @@ Describe 'Test-UTCMResourceType' {
 
 Describe 'Invoke-UTCMGraphRequest' {
     BeforeEach {
-        # Reset mock between tests
         Mock Invoke-MgGraphRequest { }
-        # Reset call counters
-        $script:mockCallCount = 0
     }
 
     Context 'Successful GET request' {
@@ -136,24 +133,23 @@ Describe 'Invoke-UTCMGraphRequest' {
 
     Context 'Automatic pagination' {
         It 'Follows @odata.nextLink and aggregates results' {
-            # Use script-scoped counter so the mock can track calls
-            $script:mockCallCount = 0
-            Mock Invoke-MgGraphRequest {
-                $script:mockCallCount++
-                if ($script:mockCallCount -eq 1) {
-                    return [PSCustomObject]@{
-                        value = @(
-                            [PSCustomObject]@{ id = '1' },
-                            [PSCustomObject]@{ id = '2' }
-                        )
-                        '@odata.nextLink' = 'beta/test?$skiptoken=page2'
-                    }
-                } else {
-                    return [PSCustomObject]@{
-                        value = @(
-                            [PSCustomObject]@{ id = '3' }
-                        )
-                    }
+            # Use URI-based ParameterFilter mocks to avoid variable scoping issues
+            # First call: return page 1 with nextLink
+            Mock Invoke-MgGraphRequest -ParameterFilter { $Uri -eq 'beta/test' } {
+                return [PSCustomObject]@{
+                    value = @(
+                        [PSCustomObject]@{ id = '1' },
+                        [PSCustomObject]@{ id = '2' }
+                    )
+                    '@odata.nextLink' = 'beta/test?$skiptoken=page2'
+                }
+            }
+            # Pagination follow-up: return page 2 without nextLink
+            Mock Invoke-MgGraphRequest -ParameterFilter { $Uri -like '*skiptoken*' } {
+                return [PSCustomObject]@{
+                    value = @(
+                        [PSCustomObject]@{ id = '3' }
+                    )
                 }
             }
 
@@ -169,7 +165,7 @@ Describe 'Invoke-UTCMGraphRequest' {
                 }
             }
 
-            $result = Invoke-UTCMGraphRequest -Uri 'beta/test' -NoPagination
+            Invoke-UTCMGraphRequest -Uri 'beta/test' -NoPagination | Out-Null
 
             # Should only be called once (no follow-up for nextLink)
             Should -Invoke Invoke-MgGraphRequest -Times 1
@@ -178,10 +174,11 @@ Describe 'Invoke-UTCMGraphRequest' {
 
     Context 'Retry logic' {
         It 'Retries on HTTP 429 and succeeds' {
-            $script:mockCallCount = 0
+            # Use ArrayList - object mutation persists across Pester mock scopes
+            $tracker = [System.Collections.ArrayList]::new()
             Mock Invoke-MgGraphRequest {
-                $script:mockCallCount++
-                if ($script:mockCallCount -eq 1) {
+                $null = $tracker.Add(1)
+                if ($tracker.Count -le 1) {
                     throw "Response status code does not indicate success: 429"
                 }
                 return [PSCustomObject]@{ id = 'success' }
@@ -193,10 +190,10 @@ Describe 'Invoke-UTCMGraphRequest' {
         }
 
         It 'Retries on HTTP 503 and succeeds' {
-            $script:mockCallCount = 0
+            $tracker = [System.Collections.ArrayList]::new()
             Mock Invoke-MgGraphRequest {
-                $script:mockCallCount++
-                if ($script:mockCallCount -eq 1) {
+                $null = $tracker.Add(1)
+                if ($tracker.Count -le 1) {
                     throw "Response status code does not indicate success: 503"
                 }
                 return [PSCustomObject]@{ id = 'recovered' }
