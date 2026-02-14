@@ -92,6 +92,8 @@ Describe 'Invoke-UTCMGraphRequest' {
     BeforeEach {
         # Reset mock between tests
         Mock Invoke-MgGraphRequest { }
+        # Reset call counters
+        $script:mockCallCount = 0
     }
 
     Context 'Successful GET request' {
@@ -134,10 +136,11 @@ Describe 'Invoke-UTCMGraphRequest' {
 
     Context 'Automatic pagination' {
         It 'Follows @odata.nextLink and aggregates results' {
-            $callCount = 0
+            # Use script-scoped counter so the mock can track calls
+            $script:mockCallCount = 0
             Mock Invoke-MgGraphRequest {
-                $callCount++
-                if ($callCount -eq 1) {
+                $script:mockCallCount++
+                if ($script:mockCallCount -eq 1) {
                     return [PSCustomObject]@{
                         value = @(
                             [PSCustomObject]@{ id = '1' },
@@ -152,7 +155,7 @@ Describe 'Invoke-UTCMGraphRequest' {
                         )
                     }
                 }
-            } -Verifiable
+            }
 
             $result = Invoke-UTCMGraphRequest -Uri 'beta/test'
             $result.value.Count | Should -Be 3
@@ -175,10 +178,10 @@ Describe 'Invoke-UTCMGraphRequest' {
 
     Context 'Retry logic' {
         It 'Retries on HTTP 429 and succeeds' {
-            $callCount = 0
+            $script:mockCallCount = 0
             Mock Invoke-MgGraphRequest {
-                $callCount++
-                if ($callCount -eq 1) {
+                $script:mockCallCount++
+                if ($script:mockCallCount -eq 1) {
                     throw "Response status code does not indicate success: 429"
                 }
                 return [PSCustomObject]@{ id = 'success' }
@@ -190,10 +193,10 @@ Describe 'Invoke-UTCMGraphRequest' {
         }
 
         It 'Retries on HTTP 503 and succeeds' {
-            $callCount = 0
+            $script:mockCallCount = 0
             Mock Invoke-MgGraphRequest {
-                $callCount++
-                if ($callCount -eq 1) {
+                $script:mockCallCount++
+                if ($script:mockCallCount -eq 1) {
                     throw "Response status code does not indicate success: 503"
                 }
                 return [PSCustomObject]@{ id = 'recovered' }
