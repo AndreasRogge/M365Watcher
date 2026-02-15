@@ -469,8 +469,10 @@ function New-UTCMSnapshot {
 
         $body = @{
             displayName = $DisplayName
-            description = $Description
-            resources = $Resources
+            resources = @($Resources)
+        }
+        if ($Description) {
+            $body['description'] = $Description
         }
 
         if (-not $PSCmdlet.ShouldProcess("Snapshot '$DisplayName'", "Create")) { return $null }
