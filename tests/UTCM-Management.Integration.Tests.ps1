@@ -68,7 +68,7 @@ Describe 'UTCM Availability' -Tag 'Integration' {
 
 Describe 'Snapshot Lifecycle' -Tag 'Integration' {
     It 'Creates a snapshot with a verified resource type' {
-        $displayName = "PesterTest-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+        $displayName = "PesterTest $(Get-Date -Format 'yyyyMMdd HHmmss')"
         $snapshot = New-UTCMSnapshot `
             -DisplayName $displayName `
             -Description 'Pester integration test' `
@@ -126,7 +126,7 @@ Describe 'Monitor Lifecycle' -Tag 'Integration' {
             return
         }
 
-        $monitorName = "PesterMon-$(Get-Date -Format 'HHmmss')"
+        $monitorName = "PesterMon $(Get-Date -Format 'HHmmss')"
         # Pad to 8 chars minimum
         if ($monitorName.Length -lt 8) { $monitorName = $monitorName.PadRight(8, '0') }
 
@@ -192,7 +192,7 @@ Describe 'Resource Type Validation against API' -Tag 'Integration' {
             'microsoft.entra.tenantdetails'
         )
 
-        $displayName = "PesterMulti-$(Get-Date -Format 'HHmmss')"
+        $displayName = "PesterMulti $(Get-Date -Format 'HHmmss')"
         $snapshot = New-UTCMSnapshot `
             -DisplayName $displayName `
             -Description 'Multi-resource test' `

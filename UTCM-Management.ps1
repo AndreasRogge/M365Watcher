@@ -460,6 +460,12 @@ function New-UTCMSnapshot {
     )
 
     try {
+        # Validate display name - API only allows alphabets, numbers, and spaces
+        if ($DisplayName -notmatch '^[a-zA-Z0-9 ]+$') {
+            Write-Error "Snapshot display name contains invalid characters. Only alphabets, numbers, and spaces are allowed."
+            return $null
+        }
+
         # Validate resource types
         foreach ($rt in $Resources) {
             Test-UTCMResourceType -ResourceType $rt | Out-Null
@@ -576,6 +582,12 @@ function New-UTCMMonitor {
         # Validate displayName length
         if ($DisplayName.Length -lt 8 -or $DisplayName.Length -gt 32) {
             Write-Error "Monitor display name must be between 8 and 32 characters. Current length: $($DisplayName.Length)"
+            return $null
+        }
+
+        # Validate display name characters - API only allows alphabets, numbers, and spaces
+        if ($DisplayName -notmatch '^[a-zA-Z0-9 ]+$') {
+            Write-Error "Monitor display name contains invalid characters. Only alphabets, numbers, and spaces are allowed."
             return $null
         }
 
