@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Changed
+- Extracted the 107 verified UTCM resource types from three previously duplicated locations into a single shared JSON catalog at `data/resourceTypes.json` (repo root). This file is now the single source of truth for all resource type data across the PowerShell module and the web dashboard.
+  - `src/M365Watcher/Private/Constants.ps1` — replaced the hardcoded `$script:VerifiedResourceTypes` flat array with a JSON loader that reads `data/resourceTypes.json` at module import time. Both `$script:ResourceTypeCatalog` (structured, by workload) and `$script:VerifiedResourceTypes` (flat array) are still available; no breaking change to callers.
+  - `src/M365Watcher/Public/Get-UTCMResourceTypes.ps1` — replaced 130 lines of hardcoded `Write-Host` statements with a dynamic loop that renders from `$script:ResourceTypeCatalog`. Output is identical.
+  - `dashboard/server/src/services/resourceTypeService.ts` — updated import path to reference `data/resourceTypes.json` at the repo root.
+  - `dashboard/server/src/data/resourceTypes.json` — removed (superseded by `data/resourceTypes.json` at repo root).
+
 ## [2.0.0] - 2026-02-19
 
 ### Changed

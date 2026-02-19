@@ -13,8 +13,8 @@ export interface ResourceTypeWorkload {
 
 export type ResourceTypeCatalog = Record<string, ResourceTypeWorkload>;
 
-// Load resource types from static JSON file (107 verified types across 5 workloads)
-const catalogPath = resolve(__dirname, "../data/resourceTypes.json");
+// Load resource types from shared JSON data file (single source of truth at repo root)
+const catalogPath = resolve(__dirname, "../../../../data/resourceTypes.json");
 const catalog: ResourceTypeCatalog = JSON.parse(
   readFileSync(catalogPath, "utf-8")
 );
