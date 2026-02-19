@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { readFileSync, existsSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
 
@@ -15,12 +15,28 @@ export type ResourceTypeCatalog = Record<string, ResourceTypeWorkload>;
 
 // Load resource types from shared JSON data file (single source of truth at repo root)
 const catalogPath = resolve(__dirname, "../../../../data/resourceTypes.json");
-const catalog: ResourceTypeCatalog = JSON.parse(
-  readFileSync(catalogPath, "utf-8")
-);
+
+if (!existsSync(catalogPath)) {
+  throw new Error(
+    "Resource type catalog is missing. Ensure the data/ directory is present in the deployment."
+  );
+}
+
+let catalog: ResourceTypeCatalog;
+try {
+  catalog = JSON.parse(readFileSync(catalogPath, "utf-8"));
+  // Normalize all type strings to lowercase at load time
+  for (const workload of Object.values(catalog)) {
+    workload.types = workload.types.map((t) => t.toLowerCase());
+  }
+} catch (err) {
+  throw new Error(
+    `Failed to parse resource type catalog. Verify data/resourceTypes.json is valid JSON. Error: ${(err as Error).message}`
+  );
+}
 
 export function getResourceTypes(): ResourceTypeCatalog {
-  return catalog;
+  return structuredClone(catalog);
 }
 
 export function getAllResourceTypeNames(): string[] {
