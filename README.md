@@ -395,6 +395,8 @@ $report | Format-Table -AutoSize
 
 The UTCM schema defines [270+ resource types](https://www.schemastore.org/utcm-monitor.json). We tested all of them against the API - **107 confirmed working**, 163 returned errors.
 
+> **Single source of truth:** The full catalog of 107 verified types (structured by workload) is maintained in [`data/resourceTypes.json`](data/resourceTypes.json) at the repo root. Both the PowerShell module (`src/M365Watcher/Private/Constants.ps1`) and the dashboard backend (`dashboard/server/src/services/resourceTypeService.ts`) load from this file. To add or remove a resource type, edit only `data/resourceTypes.json`.
+
 ### Entra ID Resources (13 verified)
 - `microsoft.entra.administrativeunit`
 - `microsoft.entra.application`
