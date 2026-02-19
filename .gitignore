@@ -1,0 +1,24 @@
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+dist/
+.env
+
+# Build artifacts
+*.b64
+nul
+
+# Project notes (local only)
+IMPROVEMENT-IDEAS.md
+
+# Claude Code worktree artifacts
+.claude/

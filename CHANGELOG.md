@@ -4,6 +4,42 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.5.0] - 2026-02-19
+
+### Added
+- **Snapshot Contents Viewer** - Browse the full captured configuration of any succeeded snapshot directly in the dashboard
+  - New "Snapshot Contents" tab on snapshot detail page (lazy-loaded, only fetches when activated)
+  - Resources grouped by workload (Entra ID, Exchange, Intune, Security & Compliance, Teams) with color-coded borders
+  - Expandable resource cards showing all captured properties in a table
+  - Full-text search across resource types, names, IDs, and property values
+  - Copy JSON button on each resource for quick export
+  - 5-minute client-side cache to avoid redundant API calls
+- **Backend endpoint** `GET /api/snapshots/:id/contents` - Fetches the full configuration data from a snapshot's `resourceLocation`
+
+### Fixed
+- **Delete snapshot/monitor bug** - The delete confirmation dialog now properly handles async operations. Previously clicking "Delete" had no visible effect because the async callback wasn't being awaited correctly. The dialog now shows a loading spinner during deletion and displays inline error messages if the operation fails.
+- **ConfirmDialog component** - Refactored to manage its own loading and error state internally, properly awaiting async `onConfirm` callbacks with try/catch error handling. Cancel and close buttons are disabled during operations to prevent state corruption.
+
+## [1.4.0] - 2026-02-18
+
+### Added
+- **Web Dashboard** - Full React + Node.js web UI for UTCM monitoring (`/dashboard`)
+  - **Overview page** with summary cards (snapshots, monitors, active drifts, last run), recent drifts table, and monitor status
+  - **Snapshot management** - Create snapshots with resource type picker (107 types grouped by workload with search and select-all), view details, delete
+  - **Monitor management** - Create monitors from succeeded snapshots, update baseline (with drift deletion warning), view details with baseline resources, delete
+  - **Drift viewer** - List with filtering by monitor and status, detail view with side-by-side JSON diff showing property-level changes (expected vs detected values)
+  - **Monitoring results** - Timeline of monitoring runs with status, drift detection, and completion time
+  - **Resource types reference** - Searchable, color-coded listing of all 107 types grouped by workload
+- **Backend API** (Express.js + TypeScript)
+  - REST endpoints for all UTCM operations (`/api/snapshots`, `/api/monitors`, `/api/drifts`, `/api/monitoring-results`, `/api/resource-types`, `/api/summary`)
+  - Microsoft Graph client credentials auth via MSAL Node
+  - Retry logic with exponential backoff for 429/503/504 (faithful port of `Invoke-UTCMGraphRequest`)
+  - Automatic `@odata.nextLink` pagination
+  - Structured error handling with Graph API error extraction
+- **Docker deployment** - Multi-stage Dockerfile and docker-compose.yml for containerized hosting
+- **Proxmox LXC guide** - Step-by-step deployment guide for self-hosting on Proxmox (`PROXMOX-SETUP.md`)
+- **`.gitignore`** - Standard ignores for Node.js, IDE files, secrets, and build artifacts
+
 ## [1.3.0] - 2026-02-12
 
 ### Added
