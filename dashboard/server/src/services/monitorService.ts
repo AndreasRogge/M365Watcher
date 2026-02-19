@@ -137,5 +137,13 @@ export async function updateMonitorBaseline(
 }
 
 export async function deleteMonitor(monitorId: string): Promise<void> {
-  await utcm.delete(`/configurationMonitors/${monitorId}`);
+  try {
+    await utcm.delete(`/configurationMonitors/${monitorId}`);
+  } catch (err) {
+    // If UTCM says the monitor is not found / expired, treat it as already deleted.
+    if (err instanceof ApiError && (err.statusCode === 404 || err.message.includes("not found"))) {
+      return;
+    }
+    throw err;
+  }
 }

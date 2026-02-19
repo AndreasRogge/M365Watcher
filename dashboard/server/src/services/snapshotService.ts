@@ -79,7 +79,16 @@ export async function createSnapshot(
 }
 
 export async function deleteSnapshot(snapshotId: string): Promise<void> {
-  await utcm.delete(`/configurationSnapshotJobs/${snapshotId}`);
+  try {
+    await utcm.delete(`/configurationSnapshotJobs/${snapshotId}`);
+  } catch (err) {
+    // If UTCM says the snapshot is not found / expired, treat it as already deleted.
+    // The snapshot list will refresh and it will disappear on its own.
+    if (err instanceof ApiError && (err.statusCode === 404 || err.message.includes("not found"))) {
+      return;
+    }
+    throw err;
+  }
 }
 
 /**
