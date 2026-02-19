@@ -1,0 +1,46 @@
+# UTCM Service Principal App ID (Microsoft-provided)
+$script:UTCMAppId = "03b07b79-c5bc-4b5e-9bfa-13acf4a99998"
+$script:GraphAppId = "00000003-0000-0000-c000-000000000000"
+
+# Verified resource types (107 confirmed working via API testing)
+$script:VerifiedResourceTypes = @(
+    'microsoft.entra.administrativeunit','microsoft.entra.application','microsoft.entra.authorizationpolicy',
+    'microsoft.entra.group','microsoft.entra.grouplifecyclepolicy','microsoft.entra.namedlocationpolicy',
+    'microsoft.entra.roledefinition','microsoft.entra.rolesetting','microsoft.entra.securitydefaults',
+    'microsoft.entra.serviceprincipal','microsoft.entra.tenantdetails','microsoft.entra.tokenlifetimepolicy',
+    'microsoft.entra.user',
+    'microsoft.exchange.accepteddomain','microsoft.exchange.antiphishpolicy','microsoft.exchange.antiphishrule',
+    'microsoft.exchange.atppolicyforo365','microsoft.exchange.authenticationpolicy','microsoft.exchange.availabilityconfig',
+    'microsoft.exchange.calendarprocessing','microsoft.exchange.casmailboxplan','microsoft.exchange.casmailboxsettings',
+    'microsoft.exchange.dataclassification','microsoft.exchange.dataencryptionpolicy','microsoft.exchange.distributiongroup',
+    'microsoft.exchange.dkimsigningconfig','microsoft.exchange.emailaddresspolicy','microsoft.exchange.groupsettings',
+    'microsoft.exchange.inboundconnector','microsoft.exchange.irmconfiguration','microsoft.exchange.journalrule',
+    'microsoft.exchange.mailboxpermission','microsoft.exchange.mailboxplan','microsoft.exchange.mailboxsettings',
+    'microsoft.exchange.mailcontact','microsoft.exchange.mailtips','microsoft.exchange.malwarefilterpolicy',
+    'microsoft.exchange.malwarefilterrule','microsoft.exchange.managementrole','microsoft.exchange.omeconfiguration',
+    'microsoft.exchange.organizationconfig','microsoft.exchange.outboundconnector','microsoft.exchange.owamailboxpolicy',
+    'microsoft.exchange.partnerapplication','microsoft.exchange.place','microsoft.exchange.policytipconfig',
+    'microsoft.exchange.quarantinepolicy','microsoft.exchange.recipientpermission','microsoft.exchange.remotedomain',
+    'microsoft.exchange.reportsubmissionrule','microsoft.exchange.roleassignmentpolicy','microsoft.exchange.rolegroup',
+    'microsoft.exchange.safeattachmentpolicy','microsoft.exchange.safeattachmentrule','microsoft.exchange.safelinkspolicy',
+    'microsoft.exchange.safelinksrule','microsoft.exchange.sharedmailbox','microsoft.exchange.sharingpolicy',
+    'microsoft.exchange.transportconfig','microsoft.exchange.transportrule',
+    'microsoft.intune.devicecategory','microsoft.intune.policysets','microsoft.intune.roleassignment',
+    'microsoft.intune.roledefinition',
+    'microsoft.securityandcompliance.caseholdpolicy','microsoft.securityandcompliance.caseholdrule',
+    'microsoft.securityandcompliance.compliancecase','microsoft.securityandcompliance.compliancesearch',
+    'microsoft.securityandcompliance.compliancetag','microsoft.securityandcompliance.dlpcompliancepolicy',
+    'microsoft.securityandcompliance.labelpolicy','microsoft.securityandcompliance.protectionalert',
+    'microsoft.securityandcompliance.retentioneventtype','microsoft.securityandcompliance.securityfilter',
+    'microsoft.teams.appsetuppolicy','microsoft.teams.callholdpolicy','microsoft.teams.callingpolicy',
+    'microsoft.teams.callparkpolicy','microsoft.teams.callqueue','microsoft.teams.channelspolicy',
+    'microsoft.teams.clientconfiguration','microsoft.teams.cortanapolicy','microsoft.teams.eventspolicy',
+    'microsoft.teams.feedbackpolicy','microsoft.teams.filespolicy','microsoft.teams.ipphonepolicy',
+    'microsoft.teams.meetingconfiguration','microsoft.teams.meetingpolicy','microsoft.teams.messagingpolicy',
+    'microsoft.teams.mobilitypolicy','microsoft.teams.networkroamingpolicy','microsoft.teams.onlinevoiceuser',
+    'microsoft.teams.pstnusage','microsoft.teams.shiftspolicy','microsoft.teams.templatespolicy',
+    'microsoft.teams.tenantdialplan','microsoft.teams.tenantnetworkregion','microsoft.teams.tenantnetworksite',
+    'microsoft.teams.tenantnetworksubnet','microsoft.teams.translationrule','microsoft.teams.upgradeconfiguration',
+    'microsoft.teams.upgradepolicy','microsoft.teams.user','microsoft.teams.vdipolicy',
+    'microsoft.teams.voiceroute','microsoft.teams.voiceroutingpolicy','microsoft.teams.workloadpolicy'
+)

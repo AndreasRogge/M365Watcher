@@ -23,7 +23,7 @@ jobs:
       - name: Run PSScriptAnalyzer
         shell: pwsh
         run: |
-          $results = Invoke-ScriptAnalyzer -Path ./UTCM-Management.ps1 -Severity Warning,Error -ReportSummary
+          $results = Invoke-ScriptAnalyzer -Path ./src/M365Watcher/ -Recurse -Severity Warning,Error -ReportSummary
           $results | Format-Table -AutoSize
           if ($results | Where-Object Severity -eq 'Error') {
             Write-Error "PSScriptAnalyzer found errors"
@@ -51,7 +51,7 @@ jobs:
           $config.Run.Path = './tests/UTCM-Management.Tests.ps1'
           $config.Output.Verbosity = 'Detailed'
           $config.CodeCoverage.Enabled = $true
-          $config.CodeCoverage.Path = @('./UTCM-Management.ps1')
+          $config.CodeCoverage.Path = @('./src/M365Watcher/Public/', './src/M365Watcher/Private/')
           $config.CodeCoverage.OutputFormat = 'JaCoCo'
           $config.CodeCoverage.OutputPath = './coverage.xml'
           $config.TestResult.Enabled = $true

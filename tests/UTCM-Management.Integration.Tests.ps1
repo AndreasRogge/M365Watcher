@@ -20,8 +20,8 @@
 #>
 
 BeforeAll {
-    # Dot-source the script
-    . "$PSScriptRoot\..\UTCM-Management.ps1"
+    # Import the M365Watcher module
+    Import-Module "$PSScriptRoot\..\src\M365Watcher" -Force
 
     # Authenticate using client credentials
     $tenantId = $env:AZURE_TENANT_ID

@@ -124,10 +124,10 @@ The script includes an interactive menu-driven interface for easy management:
 
 ```powershell
 # Launch interactive mode
-.\UTCM-Management.ps1 -Interactive
+.\Start-Interactive.ps1
 
-# Or load the script and start interactive mode
-. .\UTCM-Management.ps1
+# Or import the module and start interactive mode
+Import-Module .\src\M365Watcher
 Start-UTCMInteractive
 ```
 
@@ -172,8 +172,8 @@ For automation and scripting, use the individual functions:
 #### 1. Initial Setup
 
 ```powershell
-# Load the script
-. .\UTCM-Management.ps1
+# Import the module
+Import-Module .\src\M365Watcher
 
 # Test if UTCM is available in your tenant
 Test-UTCMAvailability
@@ -754,7 +754,7 @@ Get-UTCMSnapshot -SnapshotId "your-snapshot-id"
 ```powershell
 # Create script to run daily
 $scriptContent = @'
-. .\UTCM-Management.ps1
+Import-Module .\src\M365Watcher
 Connect-UTCM
 $drifts = Get-UTCMDrift -Status Active
 if ($drifts.Count -gt 0) {
@@ -782,7 +782,7 @@ Connect-AzAccount -Identity
 Connect-MgGraph -Identity
 
 # Load UTCM functions
-. .\UTCM-Management.ps1
+Import-Module .\src\M365Watcher
 
 # Check for drifts
 $drifts = Get-UTCMDrift -Status Active
