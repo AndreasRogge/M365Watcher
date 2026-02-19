@@ -2,7 +2,7 @@
 
 ## Overview
 
-This PowerShell script provides comprehensive management of Microsoft's Unified Tenant Configuration Management (UTCM) APIs through Microsoft Graph. UTCM enables automated monitoring of Microsoft 365 tenant configuration settings and detection of configuration drift across workloads.
+This PowerShell module provides comprehensive management of Microsoft's Unified Tenant Configuration Management (UTCM) APIs through Microsoft Graph. UTCM enables automated monitoring of Microsoft 365 tenant configuration settings and detection of configuration drift across workloads. The module is located at `src/M365Watcher/` and exports 18 public functions covering the full UTCM lifecycle.
 
 > **⚠️ Important:** UTCM is currently in **preview** and may not be available in all Microsoft 365 tenants. Use `Test-UTCMAvailability` to check if UTCM is enabled in your tenant before proceeding.
 
@@ -115,6 +115,28 @@ For self-hosting on Proxmox, see [dashboard/PROXMOX-SETUP.md](dashboard/PROXMOX-
 - `Get-UTCMResourceTypes` - Show available resource types
 - `Start-UTCMInteractive` - Launch interactive menu interface
 - `Start-UTCMExample` - Run example workflow
+
+## Installation
+
+Clone the repository and import the module directly from the source tree. No PSGallery publish step is required for local use.
+
+```powershell
+# Clone the repository
+git clone https://github.com/AndreasRogge/M365Watcher.git
+cd M365Watcher
+
+# Import the module
+Import-Module .\src\M365Watcher
+
+# Verify the module loaded correctly
+Get-Module M365Watcher
+```
+
+The module requires **PowerShell 7.0 or later** and the `Microsoft.Graph.Authentication` module:
+
+```powershell
+Install-Module Microsoft.Graph.Authentication -Scope CurrentUser
+```
 
 ## Quick Start
 
@@ -635,7 +657,7 @@ All `microsoft.intune.*` types except `devicecategory`, `policysets`, `roleassig
 - **API endpoints may change** - Beta endpoints are subject to change without notice
 - **Resource type support varies** - Not all resource types may be supported in all tenants
 
-### Script Implementation Notes
+### Module Implementation Notes
 - **Correct API endpoints used:**
   - Creating snapshots: `POST /beta/admin/configurationManagement/configurationSnapshots/createSnapshot`
   - Listing snapshots: `GET /beta/admin/configurationManagement/configurationSnapshotJobs`
@@ -843,11 +865,11 @@ The GitHub Actions pipeline runs automatically on push and PR:
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
-**Current version: 1.5.0** - Snapshot contents viewer, delete bug fix, improved error handling
+**Current version: 2.0.0** - Refactored into proper PowerShell module (`src/M365Watcher/`), module manifest for PSGallery readiness, 18 public functions exported
 
 ## License
 
-This script is provided as-is for educational and operational purposes.
+This module is provided as-is for educational and operational purposes.
 
 ## Support & Feedback
 
@@ -858,7 +880,7 @@ For issues, questions, or feature requests:
 
 ## Contributing
 
-Feel free to extend this script with additional functionality or improve existing functions. When contributing:
+Feel free to extend this module with additional functionality or improve existing functions. When contributing:
 - Follow PowerShell best practices
 - Test with UTCM-enabled tenants
 - Update documentation for new features

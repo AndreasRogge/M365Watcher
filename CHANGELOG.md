@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.0] - 2026-02-19
+
+### Changed
+- Refactored monolithic `UTCM-Management.ps1` (1,573 lines) into a proper PowerShell module at `src/M365Watcher/` with `Public/` and `Private/` folder structure, module manifest (`.psd1`), and root module (`.psm1`)
+- `UTCM-Management.ps1` replaced with a thin deprecated wrapper that imports the module for backwards compatibility
+- Unit tests updated to use `Import-Module`/`InModuleScope`/module-scoped mocks (41 tests passing)
+- Integration tests updated to use `Import-Module`
+- CI/CD pipeline updated for module paths (PSScriptAnalyzer `-Recurse` on `src/M365Watcher/`, CodeCoverage paths updated)
+- README updated with module import syntax
+
+### Added
+- Module manifest (`M365Watcher.psd1`) for PSGallery publishing readiness
+- `Start-Interactive.ps1` launcher script at repo root
+- Proper function encapsulation: 18 public functions exported, 2 private functions and module constants hidden from callers
+
 ## [1.5.0] - 2026-02-19
 
 ### Added
