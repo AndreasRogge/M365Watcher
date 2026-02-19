@@ -8,7 +8,8 @@ This PowerShell script provides comprehensive management of Microsoft's Unified 
 
 ## Features
 
-- ✅ **Interactive Menu Interface** - User-friendly menu for all operations
+- ✅ **Web Dashboard** - React-based UI for visual monitoring, snapshot/monitor management, drift analysis with JSON diffs
+- ✅ **Interactive Menu Interface** - User-friendly PowerShell menu for all operations
 - ✅ **Complete UTCM Management** - All snapshot, monitor, and drift operations
 - ✅ **Resilient API Layer** - Automatic retry with exponential backoff (429/503/504), pagination, structured error parsing
 - ✅ **Resource Type Validation** - 107 verified types validated before API calls
@@ -18,6 +19,8 @@ This PowerShell script provides comprehensive management of Microsoft's Unified 
 - ✅ **Drift Detection** - Monitor configuration changes across workloads
 - ✅ **Export & Reporting** - Generate drift reports and summaries
 - ✅ **Automation Ready** - All functions support scripting and automation
+- ✅ **Docker Support** - Containerized deployment with docker-compose
+- ✅ **Self-Hosting** - Proxmox LXC deployment guide included
 
 ## Prerequisites
 
@@ -40,6 +43,45 @@ This PowerShell script provides comprehensive management of Microsoft's Unified 
 - **Microsoft Teams** - 33 verified types (Meeting, Messaging, Calling, Voice Routing, and more)
 
 > **107 of 270 schema resource types confirmed working.** See [Resource Types Reference](#resource-types-reference) for the full list.
+
+## Web Dashboard
+
+The project includes a full web dashboard for visual UTCM monitoring. It provides the same functionality as the PowerShell script through a modern web UI.
+
+**Pages:**
+- **Overview** - Summary cards (snapshots, monitors, active drifts, last run), recent drifts, monitor status
+- **Snapshots** - Create with resource type picker (107 types grouped by workload), view, delete
+- **Monitors** - Create from snapshots, update baseline, view details with baseline resources, delete
+- **Drifts** - Filter by monitor/status, detail view with side-by-side JSON diff of property changes
+- **Monitoring Results** - Timeline of monitoring runs
+- **Resource Types** - Searchable reference of all 107 types
+
+### Dashboard Quick Start
+
+```bash
+cd dashboard
+cp .env.example .env
+# Edit .env with your Azure App Registration credentials:
+#   AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET
+```
+
+**Option A: Docker (recommended for hosting)**
+```bash
+docker compose up -d --build
+# Dashboard available at http://localhost:3001
+```
+
+**Option B: Local development**
+```bash
+cd server && npm install && cd ../client && npm install && cd ..
+npm install
+npm run dev
+# Backend on http://localhost:3001, Frontend on http://localhost:5173
+```
+
+The dashboard requires an Azure App Registration with `ConfigurationMonitoring.ReadWrite.All` (Application permission, admin consented). See [dashboard/.env.example](dashboard/.env.example) for configuration.
+
+For self-hosting on Proxmox, see [dashboard/PROXMOX-SETUP.md](dashboard/PROXMOX-SETUP.md).
 
 ## Available Functions
 
@@ -800,7 +842,7 @@ The GitHub Actions pipeline runs automatically on push and PR:
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
-**Current version: 1.3.0** - Pester tests, PSScriptAnalyzer linting, GitHub Actions CI/CD
+**Current version: 1.4.0** - Web dashboard, Docker deployment, Proxmox self-hosting guide
 
 ## License
 
