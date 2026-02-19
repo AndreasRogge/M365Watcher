@@ -4,6 +4,7 @@ import {
   getSnapshot,
   createSnapshot,
   deleteSnapshot,
+  getSnapshotContents,
 } from "../services/snapshotService.js";
 
 const router = Router();
@@ -25,6 +26,19 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
     next(err);
   }
 });
+
+// Fetch the full captured configuration contents of a succeeded snapshot
+router.get(
+  "/:id/contents",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await getSnapshotContents(req.params.id);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 router.post("/", async (req: Request, res: Response, next: NextFunction) => {
   try {

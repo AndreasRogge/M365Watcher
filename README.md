@@ -50,7 +50,8 @@ The project includes a full web dashboard for visual UTCM monitoring. It provide
 
 **Pages:**
 - **Overview** - Summary cards (snapshots, monitors, active drifts, last run), recent drifts, monitor status
-- **Snapshots** - Create with resource type picker (107 types grouped by workload), view, delete
+- **Snapshots** - Create with resource type picker (107 types grouped by workload), view contents, delete
+- **Snapshot Contents** - Browse the full captured configuration of a succeeded snapshot, grouped by workload with expandable resource properties, search, and JSON copy
 - **Monitors** - Create from snapshots, update baseline, view details with baseline resources, delete
 - **Drifts** - Filter by monitor/status, detail view with side-by-side JSON diff of property changes
 - **Monitoring Results** - Timeline of monitoring runs
@@ -842,7 +843,7 @@ The GitHub Actions pipeline runs automatically on push and PR:
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
-**Current version: 1.4.0** - Web dashboard, Docker deployment, Proxmox self-hosting guide
+**Current version: 1.5.0** - Snapshot contents viewer, delete bug fix, improved error handling
 
 ## License
 

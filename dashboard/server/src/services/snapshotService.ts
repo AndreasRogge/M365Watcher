@@ -109,3 +109,49 @@ export async function getSnapshotBaseline(
 
   return graphRequest(snapshot.resourceLocation, { noPagination: true });
 }
+
+/**
+ * Fetch the full contents (captured configuration) of a completed snapshot.
+ * Returns the snapshot metadata along with all resource configurations.
+ */
+export async function getSnapshotContents(
+  snapshotId: string
+): Promise<{ snapshot: Snapshot; contents: SnapshotContents }> {
+  const snapshot = await getSnapshot(snapshotId);
+
+  if (snapshot.status !== "succeeded") {
+    throw new ApiError(
+      400,
+      "SnapshotNotReady",
+      `Snapshot status is '${snapshot.status}'. Contents are only available for succeeded snapshots.`
+    );
+  }
+
+  if (!snapshot.resourceLocation) {
+    throw new ApiError(
+      400,
+      "NoResourceLocation",
+      "Snapshot does not have a resourceLocation URL"
+    );
+  }
+
+  const data = await graphRequest<SnapshotContents>(
+    snapshot.resourceLocation,
+    { noPagination: true }
+  );
+
+  return { snapshot, contents: data };
+}
+
+export interface SnapshotResource {
+  resourceType: string;
+  resourceName: string;
+  resourceId: string;
+  properties: Record<string, unknown>;
+}
+
+export interface SnapshotContents {
+  displayName?: string;
+  description?: string;
+  resources?: SnapshotResource[];
+}

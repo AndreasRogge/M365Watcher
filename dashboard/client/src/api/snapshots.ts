@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "./client";
-import type { Snapshot, CreateSnapshotInput } from "../types";
+import type { Snapshot, CreateSnapshotInput, SnapshotContentsResponse } from "../types";
 
 export function useSnapshots() {
   return useQuery<Snapshot[]>({
@@ -20,6 +20,15 @@ export function useSnapshot(id: string) {
     queryKey: ["snapshots", id],
     queryFn: async () => (await api.get(`/snapshots/${id}`)).data,
     enabled: !!id,
+  });
+}
+
+export function useSnapshotContents(id: string, enabled = false) {
+  return useQuery<SnapshotContentsResponse>({
+    queryKey: ["snapshots", id, "contents"],
+    queryFn: async () => (await api.get(`/snapshots/${id}/contents`)).data,
+    enabled: !!id && enabled,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes — snapshot contents don't change
   });
 }
 

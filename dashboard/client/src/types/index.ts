@@ -16,6 +16,24 @@ export interface CreateSnapshotInput {
   resources: string[];
 }
 
+export interface SnapshotResource {
+  resourceType: string;
+  resourceName: string;
+  resourceId: string;
+  properties: Record<string, unknown>;
+}
+
+export interface SnapshotContents {
+  displayName?: string;
+  description?: string;
+  resources?: SnapshotResource[];
+}
+
+export interface SnapshotContentsResponse {
+  snapshot: Snapshot;
+  contents: SnapshotContents;
+}
+
 // ===== Monitors =====
 export interface Monitor {
   id: string;

@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.5.0] - 2026-02-19
+
+### Added
+- **Snapshot Contents Viewer** - Browse the full captured configuration of any succeeded snapshot directly in the dashboard
+  - New "Snapshot Contents" tab on snapshot detail page (lazy-loaded, only fetches when activated)
+  - Resources grouped by workload (Entra ID, Exchange, Intune, Security & Compliance, Teams) with color-coded borders
+  - Expandable resource cards showing all captured properties in a table
+  - Full-text search across resource types, names, IDs, and property values
+  - Copy JSON button on each resource for quick export
+  - 5-minute client-side cache to avoid redundant API calls
+- **Backend endpoint** `GET /api/snapshots/:id/contents` - Fetches the full configuration data from a snapshot's `resourceLocation`
+
+### Fixed
+- **Delete snapshot/monitor bug** - The delete confirmation dialog now properly handles async operations. Previously clicking "Delete" had no visible effect because the async callback wasn't being awaited correctly. The dialog now shows a loading spinner during deletion and displays inline error messages if the operation fails.
+- **ConfirmDialog component** - Refactored to manage its own loading and error state internally, properly awaiting async `onConfirm` callbacks with try/catch error handling. Cancel and close buttons are disabled during operations to prevent state corruption.
+
 ## [1.4.0] - 2026-02-18
 
 ### Added

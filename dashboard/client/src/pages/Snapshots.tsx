@@ -263,7 +263,6 @@ export function Snapshots() {
         title="Delete Snapshot"
         description="Are you sure you want to delete this snapshot? This action cannot be undone. Any monitors using this snapshot as a baseline will not be affected."
         confirmLabel="Delete"
-        loading={deleteMutation.isPending}
       />
     </div>
   );

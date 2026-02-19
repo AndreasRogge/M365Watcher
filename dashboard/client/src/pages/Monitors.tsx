@@ -354,7 +354,6 @@ export function Monitors() {
         title="Delete Monitor"
         description="Are you sure you want to delete this monitor? All associated drift records will be lost. This action cannot be undone."
         confirmLabel="Delete"
-        loading={deleteMutation.isPending}
       />
     </div>
   );
