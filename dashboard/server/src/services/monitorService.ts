@@ -1,7 +1,28 @@
 import { utcm } from "./graphClient.js";
 import { getSnapshotBaseline } from "./snapshotService.js";
 import { ApiError } from "../middleware/errorHandler.js";
+import {
+  listMonitoringResults,
+  MonitoringResult,
+} from "./monitoringResultService.js";
 
+/**
+ * Raw monitor shape from the UTCM API.
+ * Note: the API does NOT return `baseline` or `lastMonitoringResult` on GET.
+ * Baseline is write-only (sent on POST/PATCH). Monitoring results are a
+ * separate resource that must be fetched and joined.
+ */
+interface ApiMonitor {
+  id: string;
+  displayName: string;
+  description?: string;
+  createdDateTime: string;
+}
+
+/**
+ * Enriched monitor returned by our service layer, with the latest
+ * monitoring result attached from the separate results endpoint.
+ */
 export interface Monitor {
   id: string;
   displayName: string;
@@ -27,7 +48,7 @@ export interface Monitor {
 }
 
 interface MonitorListResponse {
-  value: Monitor[];
+  value: ApiMonitor[];
 }
 
 interface CreateMonitorInput {
@@ -62,15 +83,77 @@ function validateMonitorDisplayName(displayName: string): void {
   }
 }
 
+/**
+ * Pick the latest monitoring result per monitor from a flat list of results.
+ */
+function buildLatestResultMap(
+  results: MonitoringResult[]
+): Map<string, MonitoringResult> {
+  const map = new Map<string, MonitoringResult>();
+  for (const r of results) {
+    const existing = map.get(r.monitorId);
+    if (
+      !existing ||
+      new Date(r.detectedDateTime) > new Date(existing.detectedDateTime)
+    ) {
+      map.set(r.monitorId, r);
+    }
+  }
+  return map;
+}
+
+/**
+ * Enrich a raw API monitor with the latest monitoring result.
+ */
+function enrichMonitor(
+  raw: ApiMonitor,
+  latestResult?: MonitoringResult
+): Monitor {
+  return {
+    id: raw.id,
+    displayName: raw.displayName,
+    description: raw.description,
+    createdDateTime: raw.createdDateTime,
+    lastMonitoringResult: latestResult
+      ? {
+          status: latestResult.status,
+          detectedDateTime: latestResult.detectedDateTime,
+          completedDateTime: latestResult.completedDateTime || "",
+          driftDetected: latestResult.driftDetected,
+          driftCount: latestResult.driftCount,
+        }
+      : undefined,
+  };
+}
+
 export async function listMonitors(): Promise<Monitor[]> {
-  const response = await utcm.get<MonitorListResponse>(
-    "/configurationMonitors"
-  );
-  return response.value || [];
+  // Fetch monitors and monitoring results in parallel
+  const [monitorsResponse, results] = await Promise.all([
+    utcm.get<MonitorListResponse>("/configurationMonitors"),
+    listMonitoringResults(),
+  ]);
+
+  const rawMonitors = monitorsResponse.value || [];
+  const latestMap = buildLatestResultMap(results);
+
+  return rawMonitors.map((m) => enrichMonitor(m, latestMap.get(m.id)));
 }
 
 export async function getMonitor(monitorId: string): Promise<Monitor> {
-  return utcm.getOne<Monitor>(`/configurationMonitors/${monitorId}`);
+  // Fetch monitor and its results in parallel
+  const [raw, results] = await Promise.all([
+    utcm.getOne<ApiMonitor>(`/configurationMonitors/${monitorId}`),
+    listMonitoringResults(monitorId),
+  ]);
+
+  // Find the latest result
+  const sorted = results.sort(
+    (a, b) =>
+      new Date(b.detectedDateTime).getTime() -
+      new Date(a.detectedDateTime).getTime()
+  );
+
+  return enrichMonitor(raw, sorted[0]);
 }
 
 /**
@@ -106,7 +189,8 @@ export async function createMonitor(
     },
   };
 
-  return utcm.post<Monitor>("/configurationMonitors", body);
+  const created = await utcm.post<ApiMonitor>("/configurationMonitors", body);
+  return enrichMonitor(created);
 }
 
 /**
@@ -133,7 +217,11 @@ export async function updateMonitorBaseline(
     },
   };
 
-  return utcm.patch<Monitor>(`/configurationMonitors/${monitorId}`, body);
+  const updated = await utcm.patch<ApiMonitor>(
+    `/configurationMonitors/${monitorId}`,
+    body
+  );
+  return enrichMonitor(updated);
 }
 
 export async function deleteMonitor(monitorId: string): Promise<void> {

@@ -358,7 +358,7 @@ function Start-UTCMInteractive {
                     $results = Get-UTCMMonitoringResult
                 }
                 if ($results) {
-                    $results | Format-Table -AutoSize id, status, completedDateTime
+                    $results | Format-Table -AutoSize id, monitorId, runStatus, runInitiationDateTime, runCompletionDateTime, driftsCount
                 }
                 Read-Host "`nPress Enter to continue"
             }

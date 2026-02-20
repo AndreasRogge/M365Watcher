@@ -8,25 +8,28 @@ const router = Router();
 
 router.get("/", async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    // Fetch all data in parallel for the overview
-    const [snapshots, monitors, activeDrifts, monitoringResults] =
+    // Fetch all data in parallel for the overview.
+    // Note: listMonitors() internally fetches monitoring results for enrichment,
+    // but we also need the raw results list for lastMonitoringRun and allDrifts
+    // for the recent drifts section.
+    const [snapshots, monitors, activeDrifts, allDrifts, monitoringResults] =
       await Promise.all([
         listSnapshots(),
         listMonitors(),
         listDrifts({ status: "active" }),
+        listDrifts(),
         listMonitoringResults(),
       ]);
 
     // Find most recent monitoring result
-    const sortedResults = monitoringResults.sort(
+    const sortedResults = [...monitoringResults].sort(
       (a, b) =>
         new Date(b.detectedDateTime).getTime() -
         new Date(a.detectedDateTime).getTime()
     );
 
     // Get recent drifts (last 10)
-    const allDrifts = await listDrifts();
-    const recentDrifts = allDrifts
+    const recentDrifts = [...allDrifts]
       .sort(
         (a, b) =>
           new Date(b.detectedDateTime).getTime() -
