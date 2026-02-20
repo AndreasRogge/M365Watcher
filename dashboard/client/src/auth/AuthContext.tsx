@@ -105,16 +105,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const msal = new PublicClientApplication(msalConfig);
         await msal.initialize();
 
-        // Clean up any stale interaction state from previous failed popups
-        await msal.handleRedirectPromise().catch(() => {});
+        // Process any pending redirect (returns auth result after login redirect)
+        const redirectResult = await msal.handleRedirectPromise();
+        if (redirectResult?.account) {
+          setAccount(redirectResult.account);
+          setMode("user");
+          sessionStorage.setItem(MODE_STORAGE_KEY, "user");
+        }
 
         msalRef.current = msal;
         setMsalReady(true);
 
-        // Check for cached accounts
-        const accounts = msal.getAllAccounts();
-        if (accounts.length > 0) {
-          setAccount(accounts[0]);
+        // Check for cached accounts (covers page refresh after previous login)
+        if (!redirectResult) {
+          const accounts = msal.getAllAccounts();
+          if (accounts.length > 0) {
+            setAccount(accounts[0]);
+          }
         }
       } catch (err) {
         console.error("[Auth] MSAL initialization failed:", err);
@@ -129,37 +136,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!msal) return;
 
     try {
-      const result = await msal.loginPopup({
+      // Use redirect flow — navigates away then returns with auth code.
+      // handleRedirectPromise() in the MSAL init effect processes the result.
+      await msal.loginRedirect({
         scopes: graphScopes,
       });
-      if (result.account) {
-        setAccount(result.account);
-        setMode("user");
-        sessionStorage.setItem(MODE_STORAGE_KEY, "user");
-      }
-    } catch (err: unknown) {
-      // If a previous popup left MSAL in a stuck state, clear it and retry once
-      if (err && typeof err === "object" && "errorCode" in err && (err as { errorCode: string }).errorCode === "interaction_in_progress") {
-        try {
-          // Clear the stale interaction lock
-          const keys = Object.keys(sessionStorage);
-          for (const key of keys) {
-            if (key.includes("interaction.status")) {
-              sessionStorage.removeItem(key);
-            }
-          }
-          const result = await msal.loginPopup({ scopes: graphScopes });
-          if (result.account) {
-            setAccount(result.account);
-            setMode("user");
-            sessionStorage.setItem(MODE_STORAGE_KEY, "user");
-          }
-          return;
-        } catch (retryErr) {
-          console.error("Login retry failed:", retryErr);
-        }
-      }
-      console.error("Login failed:", err);
+    } catch (err) {
+      console.error("Login redirect failed:", err);
     }
   }, []);
 
@@ -168,15 +151,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!msal || !account) return;
 
     try {
-      await msal.logoutPopup({ account });
-      setAccount(null);
-      // If user mode is the only option, stay on user. Otherwise switch to app.
+      // Clear mode before redirect so the app returns to app-credentials mode
       if (config?.supportedModes.includes("app")) {
-        setMode("app");
         sessionStorage.setItem(MODE_STORAGE_KEY, "app");
       }
+      await msal.logoutRedirect({ account });
     } catch (err) {
-      console.error("Logout failed:", err);
+      console.error("Logout redirect failed:", err);
     }
   }, [account, config]);
 
@@ -207,14 +188,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const { InteractionRequiredAuthError } = await import("@azure/msal-browser");
         if (err instanceof InteractionRequiredAuthError) {
-          const result = await msal.acquireTokenPopup({
+          // Redirect to re-authenticate; handleRedirectPromise() will process on return
+          await msal.acquireTokenRedirect({
             scopes: graphScopes,
             account,
           });
-          return result.accessToken;
+          return null;
         }
-      } catch (popupErr) {
-        console.error("Token acquisition popup failed:", popupErr);
+      } catch (redirectErr) {
+        console.error("Token acquisition redirect failed:", redirectErr);
         return null;
       }
       console.error("Token acquisition failed:", err);
