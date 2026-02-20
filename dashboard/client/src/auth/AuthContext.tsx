@@ -104,6 +104,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const msalConfig = buildMsalConfig(config.clientId, config.tenantId);
         const msal = new PublicClientApplication(msalConfig);
         await msal.initialize();
+
+        // Clean up any stale interaction state from previous failed popups
+        await msal.handleRedirectPromise().catch(() => {});
+
         msalRef.current = msal;
         setMsalReady(true);
 
@@ -133,7 +137,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setMode("user");
         sessionStorage.setItem(MODE_STORAGE_KEY, "user");
       }
-    } catch (err) {
+    } catch (err: unknown) {
+      // If a previous popup left MSAL in a stuck state, clear it and retry once
+      if (err && typeof err === "object" && "errorCode" in err && (err as { errorCode: string }).errorCode === "interaction_in_progress") {
+        try {
+          // Clear the stale interaction lock
+          const keys = Object.keys(sessionStorage);
+          for (const key of keys) {
+            if (key.includes("interaction.status")) {
+              sessionStorage.removeItem(key);
+            }
+          }
+          const result = await msal.loginPopup({ scopes: graphScopes });
+          if (result.account) {
+            setAccount(result.account);
+            setMode("user");
+            sessionStorage.setItem(MODE_STORAGE_KEY, "user");
+          }
+          return;
+        } catch (retryErr) {
+          console.error("Login retry failed:", retryErr);
+        }
+      }
       console.error("Login failed:", err);
     }
   }, []);
