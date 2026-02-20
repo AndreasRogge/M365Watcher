@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- **OAuth user login for the web dashboard** via Authorization Code + PKCE flow using MSAL Browser, allowing users to authenticate with their own Microsoft 365 identity instead of relying solely on app credentials
+  - `AUTH_MODE` environment variable (`app` / `user` / `dual`) controls which authentication modes are available. Defaults to `dual`.
+  - `AZURE_CLIENT_SECRET` is now optional when `AUTH_MODE` is set to `user`, since the OAuth PKCE flow does not require a client secret
+  - JWT validation middleware on the server uses JWKS to verify user-issued tokens from Microsoft Entra ID
+  - `AsyncLocalStorage`-based request context propagates user bearer tokens through the Graph client transparently, with no changes required to existing service files
+  - New server endpoints: `GET /api/auth/config` (public, returns tenant ID and client ID for MSAL initialization) and `GET /api/auth/status` (returns current auth mode and session info)
+  - MSAL Browser integration on the React frontend with popup-based login
+  - `AuthProvider` React context manages login, logout, and silent token acquisition
+  - Axios interceptor automatically attaches bearer tokens to all API requests when running in user mode
+  - New **Login page** with "Sign in with Microsoft" and "Use App Credentials" options presented according to the configured `AUTH_MODE`
+  - New **Settings page** showing the active authentication mode, signed-in user info, and a toggle to switch between user and app modes in `dual` configuration
+  - **Sidebar** updated with a Settings navigation item and a footer area showing the signed-in user's avatar (user mode) or an app credentials badge (app mode)
+
 ### Changed
 - Extracted the 107 verified UTCM resource types from three previously duplicated locations into a single shared JSON catalog at `data/resourceTypes.json` (repo root). This file is now the single source of truth for all resource type data across the PowerShell module and the web dashboard.
   - `src/M365Watcher/Private/Constants.ps1` — replaced the hardcoded `$script:VerifiedResourceTypes` flat array with a JSON loader that reads `data/resourceTypes.json` at module import time. Both `$script:ResourceTypeCatalog` (structured, by workload) and `$script:VerifiedResourceTypes` (flat array) are still available; no breaking change to callers.

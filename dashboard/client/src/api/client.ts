@@ -7,6 +7,24 @@ const api = axios.create({
   },
 });
 
+// Token provider — set by AuthProvider once initialized
+let tokenProvider: (() => Promise<string | null>) | null = null;
+
+export function setTokenProvider(provider: () => Promise<string | null>) {
+  tokenProvider = provider;
+}
+
+// Request interceptor: attach bearer token when in user mode
+api.interceptors.request.use(async (reqConfig) => {
+  if (tokenProvider) {
+    const token = await tokenProvider();
+    if (token) {
+      reqConfig.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return reqConfig;
+});
+
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,

@@ -8,7 +8,7 @@ This PowerShell module provides comprehensive management of Microsoft's Unified 
 
 ## Features
 
-- ✅ **Web Dashboard** - React-based UI for visual monitoring, snapshot/monitor management, drift analysis with JSON diffs
+- ✅ **Web Dashboard** - React-based UI for visual monitoring, snapshot/monitor management, drift analysis with JSON diffs; supports app credentials and OAuth user login (MSAL Browser, PKCE)
 - ✅ **Interactive Menu Interface** - User-friendly PowerShell menu for all operations
 - ✅ **Complete UTCM Management** - All snapshot, monitor, and drift operations
 - ✅ **Resilient API Layer** - Automatic retry with exponential backoff (429/503/504), pagination, structured error parsing
@@ -56,15 +56,30 @@ The project includes a full web dashboard for visual UTCM monitoring. It provide
 - **Drifts** - Filter by monitor/status, detail view with side-by-side JSON diff of property changes
 - **Monitoring Results** - Timeline of monitoring runs
 - **Resource Types** - Searchable reference of all 107 types
+- **Login** - Sign in with Microsoft (OAuth PKCE) or continue with app credentials, shown based on `AUTH_MODE`
+- **Settings** - View active auth mode, signed-in user info, and toggle between user and app modes (in `dual` configuration)
 
 ### Dashboard Quick Start
 
 ```bash
 cd dashboard
 cp .env.example .env
-# Edit .env with your Azure App Registration credentials:
-#   AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET
+# Edit .env with your Azure App Registration credentials and preferred auth mode
 ```
+
+The minimum required variables depend on `AUTH_MODE`:
+
+| Variable | `app` mode | `user` mode | `dual` mode (default) |
+|---|---|---|---|
+| `AZURE_TENANT_ID` | Required | Required | Required |
+| `AZURE_CLIENT_ID` | Required | Required | Required |
+| `AZURE_CLIENT_SECRET` | Required | Not needed | Required |
+| `AUTH_MODE` | `app` | `user` | `dual` |
+
+**`AUTH_MODE` options:**
+- `app` — App credentials only (client secret required, no user login prompt)
+- `user` — OAuth PKCE only (users sign in with Microsoft, no client secret needed)
+- `dual` — Both modes available; users can switch between them on the Settings page (default)
 
 **Option A: Docker (recommended for hosting)**
 ```bash
@@ -80,7 +95,7 @@ npm run dev
 # Backend on http://localhost:3001, Frontend on http://localhost:5173
 ```
 
-The dashboard requires an Azure App Registration with `ConfigurationMonitoring.ReadWrite.All` (Application permission, admin consented). See [dashboard/.env.example](dashboard/.env.example) for configuration.
+The Azure App Registration must have `ConfigurationMonitoring.ReadWrite.All` (Application permission, admin consented) for app-credential mode. For user OAuth mode, the registration also needs the Delegated `ConfigurationMonitoring.ReadWrite.All` permission and a redirect URI configured for `http://localhost:5173` (development) or your production origin. See [dashboard/.env.example](dashboard/.env.example) for configuration.
 
 For self-hosting on Proxmox, see [dashboard/PROXMOX-SETUP.md](dashboard/PROXMOX-SETUP.md).
 

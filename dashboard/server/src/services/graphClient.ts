@@ -1,17 +1,31 @@
 import { ConfidentialClientApplication } from "@azure/msal-node";
 import { config } from "../config.js";
 import { ApiError } from "../middleware/errorHandler.js";
+import { getRequestAuth } from "../middleware/requestContext.js";
 
-// MSAL client credentials app - token caching is built-in
-const msalClient = new ConfidentialClientApplication({
-  auth: {
-    clientId: config.azure.clientId,
-    authority: `https://login.microsoftonline.com/${config.azure.tenantId}`,
-    clientSecret: config.azure.clientSecret,
-  },
-});
+// MSAL client credentials app - only initialized when app mode is available and secret is set
+let msalClient: ConfidentialClientApplication | null = null;
+if (config.authMode !== "user" && config.azure.clientSecret) {
+  msalClient = new ConfidentialClientApplication({
+    auth: {
+      clientId: config.azure.clientId,
+      authority: `https://login.microsoftonline.com/${config.azure.tenantId}`,
+      clientSecret: config.azure.clientSecret,
+    },
+  });
+}
 
 async function getAccessToken(): Promise<string> {
+  // Check if a user token is available via request context
+  const auth = getRequestAuth();
+  if (auth.mode === "user" && auth.userToken) {
+    return auth.userToken;
+  }
+
+  // Fall back to client credentials
+  if (!msalClient) {
+    throw new ApiError(500, "ConfigError", "Client credentials not configured. Set AZURE_CLIENT_SECRET or use user authentication.");
+  }
   const result = await msalClient.acquireTokenByClientCredential({
     scopes: config.graph.scopes,
   });

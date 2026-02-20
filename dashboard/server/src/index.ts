@@ -5,6 +5,8 @@ import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
 import { config } from "./config.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import { authMiddleware } from "./middleware/authMiddleware.js";
+import authRoutes from "./routes/auth.js";
 import snapshotRoutes from "./routes/snapshots.js";
 import monitorRoutes from "./routes/monitors.js";
 import driftRoutes from "./routes/drifts.js";
@@ -20,6 +22,12 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Auth config endpoint (public, before auth middleware)
+app.use("/api/auth", authRoutes);
+
+// Auth middleware for all other API routes
+app.use("/api", authMiddleware);
 
 // API Routes
 app.use("/api/snapshots", snapshotRoutes);
