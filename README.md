@@ -8,7 +8,7 @@ This PowerShell module provides comprehensive management of Microsoft's Unified 
 
 ## Features
 
-- ✅ **Web Dashboard** - React-based UI for visual monitoring, snapshot/monitor management, drift analysis with JSON diffs; supports app credentials and OAuth user login (MSAL Browser, PKCE)
+- ✅ **Web Dashboard** - React-based UI for visual monitoring, snapshot/monitor management, drift analysis with JSON diffs; supports app credentials and OAuth user login (MSAL Browser redirect flow, PKCE)
 - ✅ **Interactive Menu Interface** - User-friendly PowerShell menu for all operations
 - ✅ **Complete UTCM Management** - All snapshot, monitor, and drift operations
 - ✅ **Resilient API Layer** - Automatic retry with exponential backoff (429/503/504), pagination, structured error parsing
@@ -95,7 +95,7 @@ npm run dev
 # Backend on http://localhost:3001, Frontend on http://localhost:5173
 ```
 
-The Azure App Registration must have `ConfigurationMonitoring.ReadWrite.All` (Application permission, admin consented) for app-credential mode. For user OAuth mode, the registration also needs the Delegated `ConfigurationMonitoring.ReadWrite.All` permission and a redirect URI configured for `http://localhost:5173` (development) or your production origin. See [dashboard/.env.example](dashboard/.env.example) for configuration.
+The Azure App Registration must have `ConfigurationMonitoring.ReadWrite.All` (Application permission, admin consented). Graph API calls always use client credentials (application permissions) even when a user is signed in via OAuth, since the UTCM beta endpoints require application permissions. For user OAuth mode, the registration needs a **SPA platform** redirect URI configured for `http://localhost:5173` (development) or your production origin (e.g. `https://192.168.178.32`). No additional delegated permissions are required — the user's OAuth token is used only for dashboard session authentication. See [dashboard/.env.example](dashboard/.env.example) for configuration.
 
 For self-hosting on Proxmox, see [dashboard/PROXMOX-SETUP.md](dashboard/PROXMOX-SETUP.md).
 

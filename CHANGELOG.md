@@ -7,14 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
-- **OAuth user login for the web dashboard** via Authorization Code + PKCE flow using MSAL Browser, allowing users to authenticate with their own Microsoft 365 identity instead of relying solely on app credentials
+- **OAuth user login for the web dashboard** via Authorization Code + PKCE redirect flow using MSAL Browser, allowing users to authenticate with their own Microsoft 365 identity instead of relying solely on app credentials
   - `AUTH_MODE` environment variable (`app` / `user` / `dual`) controls which authentication modes are available. Defaults to `dual`.
   - `AZURE_CLIENT_SECRET` is now optional when `AUTH_MODE` is set to `user`, since the OAuth PKCE flow does not require a client secret
-  - JWT validation middleware on the server uses JWKS to verify user-issued tokens from Microsoft Entra ID
-  - `AsyncLocalStorage`-based request context propagates user bearer tokens through the Graph client transparently, with no changes required to existing service files
+  - Lightweight token validation middleware decodes the user's Microsoft Graph access token (tenant ID + expiry check) for dashboard authentication. Graph access tokens are opaque and not intended for third-party JWKS verification — Graph API itself validates them when used for API calls.
+  - `AsyncLocalStorage`-based request context tracks the authenticated user per request. Graph API calls always prefer client credentials (application permissions) when available, since the UTCM beta endpoints require application permissions. The user's OAuth token is used exclusively for dashboard session authentication.
   - New server endpoints: `GET /api/auth/config` (public, returns tenant ID and client ID for MSAL initialization) and `GET /api/auth/status` (returns current auth mode and session info)
-  - MSAL Browser integration on the React frontend with popup-based login
-  - `AuthProvider` React context manages login, logout, and silent token acquisition
+  - MSAL Browser integration on the React frontend with redirect-based login (navigates to Microsoft login and back, no popups)
+  - `AuthProvider` React context manages login, logout, and silent token acquisition. MSAL is lazy-loaded only when user mode is supported and `crypto.subtle` is available (requires HTTPS or localhost).
   - Axios interceptor automatically attaches bearer tokens to all API requests when running in user mode
   - New **Login page** with "Sign in with Microsoft" and "Use App Credentials" options presented according to the configured `AUTH_MODE`
   - New **Settings page** showing the active authentication mode, signed-in user info, and a toggle to switch between user and app modes in `dual` configuration
