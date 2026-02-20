@@ -16,23 +16,26 @@ if (config.authMode !== "user" && config.azure.clientSecret) {
 }
 
 async function getAccessToken(): Promise<string> {
-  // Check if a user token is available via request context
+  // Prefer client credentials for Graph API calls — the UTCM beta endpoints
+  // require application permissions and don't support delegated tokens.
+  // The user's OAuth token is used for dashboard authentication only.
+  if (msalClient) {
+    const result = await msalClient.acquireTokenByClientCredential({
+      scopes: config.graph.scopes,
+    });
+    if (!result?.accessToken) {
+      throw new ApiError(401, "AuthenticationFailed", "Failed to acquire access token from Azure AD");
+    }
+    return result.accessToken;
+  }
+
+  // Fall back to user token when client credentials are not configured (AUTH_MODE=user)
   const auth = getRequestAuth();
   if (auth.mode === "user" && auth.userToken) {
     return auth.userToken;
   }
 
-  // Fall back to client credentials
-  if (!msalClient) {
-    throw new ApiError(500, "ConfigError", "Client credentials not configured. Set AZURE_CLIENT_SECRET or use user authentication.");
-  }
-  const result = await msalClient.acquireTokenByClientCredential({
-    scopes: config.graph.scopes,
-  });
-  if (!result?.accessToken) {
-    throw new ApiError(401, "AuthenticationFailed", "Failed to acquire access token from Azure AD");
-  }
-  return result.accessToken;
+  throw new ApiError(500, "ConfigError", "Client credentials not configured. Set AZURE_CLIENT_SECRET or use user authentication.");
 }
 
 interface GraphRequestOptions {
