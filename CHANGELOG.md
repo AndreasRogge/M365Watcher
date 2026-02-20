@@ -12,6 +12,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - `src/M365Watcher/Public/Get-UTCMResourceTypes.ps1` — replaced 130 lines of hardcoded `Write-Host` statements with a dynamic loop that renders from `$script:ResourceTypeCatalog`. Output is identical.
   - `dashboard/server/src/services/resourceTypeService.ts` — updated import path to reference `data/resourceTypes.json` at the repo root.
   - `dashboard/server/src/data/resourceTypes.json` — removed (superseded by `data/resourceTypes.json` at repo root).
+- `dashboard/Dockerfile` — changed build context to the repo root so the multi-stage build can reference paths under both `dashboard/` and `data/`. Added `COPY data/ ./data/` to include the shared resource type catalog in the image.
+- `dashboard/docker-compose.yml` — updated `build` from a simple `build: .` to an explicit `context: ..` / `dockerfile: dashboard/Dockerfile` form so Docker Compose uses the repo root as the build context.
+- Added `.dockerignore` at the repo root to exclude `.git`, `node_modules`, test files, and other non-essential paths from the Docker build context.
+
+### Fixed
+- **Dashboard server crash on startup in Docker** — after PR #2 moved `resourceTypes.json` to the repo root, the Docker image no longer contained the file (the old per-directory copy was removed but the image was never updated to pull from the new location). The server exited immediately with a module-not-found error on the first request to `/api/resource-types`. Resolved by:
+  - Copying `data/resourceTypes.json` into the image via `COPY data/ ./data/` in `dashboard/Dockerfile`.
+  - Updating `dashboard/server/src/services/resourceTypeService.ts` to probe multiple candidate paths at startup (`/app/data/resourceTypes.json` for Docker, then relative paths walking up the directory tree for local development), so the service resolves the catalog file correctly in both environments without requiring environment-specific configuration.
 
 ## [2.0.0] - 2026-02-19
 
