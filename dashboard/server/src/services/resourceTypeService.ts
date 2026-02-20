@@ -13,12 +13,19 @@ export interface ResourceTypeWorkload {
 
 export type ResourceTypeCatalog = Record<string, ResourceTypeWorkload>;
 
-// Load resource types from shared JSON data file (single source of truth at repo root)
-const catalogPath = resolve(__dirname, "../../../../data/resourceTypes.json");
+// Load resource types from shared JSON data file (single source of truth)
+// In Docker: /app/data/resourceTypes.json (relative: ../../data/)
+// In local dev: repo-root/data/resourceTypes.json (relative: ../../../../data/)
+const candidatePaths = [
+  resolve(__dirname, "../../data/resourceTypes.json"),
+  resolve(__dirname, "../../../../data/resourceTypes.json"),
+];
+const catalogPath = candidatePaths.find((p) => existsSync(p));
 
-if (!existsSync(catalogPath)) {
+if (!catalogPath) {
   throw new Error(
-    "Resource type catalog is missing. Ensure the data/ directory is present in the deployment."
+    "Resource type catalog is missing. Ensure data/resourceTypes.json is present. Searched: " +
+      candidatePaths.join(", ")
   );
 }
 

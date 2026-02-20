@@ -1,6 +1,8 @@
 services:
   m365watcher:
-    build: .
+    build:
+      context: ..
+      dockerfile: dashboard/Dockerfile
     container_name: m365watcher-dashboard
     restart: unless-stopped
     ports:
