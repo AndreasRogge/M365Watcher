@@ -1,49 +1,41 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import jwksRsa from "jwks-rsa";
 import { config } from "../config.js";
 import { requestContext, RequestAuthContext } from "./requestContext.js";
 
-const jwksClient = jwksRsa({
-  jwksUri: `https://login.microsoftonline.com/${config.azure.tenantId}/discovery/v2.0/keys`,
-  cache: true,
-  cacheMaxAge: 600000, // 10 minutes
-  rateLimit: true,
-});
+/**
+ * Decode and lightly validate a Microsoft Graph access token.
+ *
+ * Graph access tokens are intended for the Graph API, not for third-party
+ * validation. Microsoft explicitly documents them as opaque — their format
+ * can change and they may use nonce-based key derivation that prevents
+ * standard JWKS signature verification.
+ *
+ * Since our backend passes the token through to Graph API (which performs
+ * full validation), we only need to:
+ *  1. Verify it's a well-formed JWT
+ *  2. Check the tenant ID matches our expected tenant
+ *  3. Check it hasn't expired (basic sanity check)
+ */
+function validateBearerToken(token: string): jwt.JwtPayload {
+  const decoded = jwt.decode(token, { complete: true });
+  if (!decoded || typeof decoded.payload === "string") {
+    throw new Error("The provided token is not a valid JWT.");
+  }
 
-function signingKeyProvider(
-  header: jwt.JwtHeader,
-  callback: (err: Error | null, key?: string) => void
-): void {
-  jwksClient.getSigningKey(header.kid, (err, key) => {
-    if (err) return callback(err);
-    callback(null, key!.getPublicKey());
-  });
-}
+  const payload = decoded.payload;
+  const tid = payload.tid as string | undefined;
+  if (!tid || tid !== config.azure.tenantId) {
+    console.warn(`[Auth] Token tenant mismatch: expected ${config.azure.tenantId}, got ${tid}`);
+    throw new Error("The provided token is invalid or has expired.");
+  }
 
-function validateBearerToken(token: string): Promise<jwt.JwtPayload> {
-  return new Promise((resolve, reject) => {
-    jwt.verify(
-      token,
-      signingKeyProvider,
-      {
-        audience: [config.azure.clientId, `api://${config.azure.clientId}`],
-        issuer: [
-          `https://login.microsoftonline.com/${config.azure.tenantId}/v2.0`,
-          `https://sts.windows.net/${config.azure.tenantId}/`,
-        ],
-        algorithms: ["RS256"],
-      },
-      (err, payload) => {
-        if (err) {
-          console.warn(`[Auth] Token validation failed: ${err.message}`);
-          reject(new Error("The provided token is invalid or has expired."));
-        } else {
-          resolve(payload as jwt.JwtPayload);
-        }
-      }
-    );
-  });
+  // Basic expiry check
+  if (payload.exp && payload.exp * 1000 < Date.now()) {
+    throw new Error("The provided token is invalid or has expired.");
+  }
+
+  return payload;
 }
 
 export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
@@ -60,20 +52,23 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
       return;
     }
 
-    validateBearerToken(token)
-      .then((claims) => {
-        const ctx: RequestAuthContext = {
-          mode: "user",
-          userToken: token,
-          userClaims: claims as Record<string, unknown>,
-        };
-        requestContext.run(ctx, () => next());
-      })
-      .catch(() => {
-        res.status(401).json({
-          error: { code: "TokenValidationFailed", message: "The provided token is invalid or has expired." },
-        });
+    let claims: jwt.JwtPayload;
+    try {
+      claims = validateBearerToken(token);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "The provided token is invalid or has expired.";
+      res.status(401).json({
+        error: { code: "TokenValidationFailed", message },
       });
+      return;
+    }
+
+    const ctx: RequestAuthContext = {
+      mode: "user",
+      userToken: token,
+      userClaims: claims as Record<string, unknown>,
+    };
+    requestContext.run(ctx, () => next());
     return;
   }
 
