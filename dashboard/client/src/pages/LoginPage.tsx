@@ -1,8 +1,8 @@
-import { Shield, LogIn, Server } from "lucide-react";
+import { Shield, LogIn, Server, AlertTriangle } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 
 export function LoginPage() {
-  const { login, switchMode, supportedModes } = useAuth();
+  const { login, switchMode, supportedModes, msalReady } = useAuth();
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-950">
@@ -21,13 +21,25 @@ export function LoginPage() {
         </div>
 
         {/* Sign in button */}
-        <button
-          onClick={login}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-500"
-        >
-          <LogIn className="h-4 w-4" />
-          Sign in with Microsoft
-        </button>
+        {msalReady ? (
+          <button
+            onClick={login}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-500"
+          >
+            <LogIn className="h-4 w-4" />
+            Sign in with Microsoft
+          </button>
+        ) : (
+          <div className="rounded-lg border border-yellow-800/50 bg-yellow-900/20 p-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-500" />
+              <p className="text-xs text-yellow-400/80">
+                OAuth login requires HTTPS or localhost. Use app credentials on
+                plain HTTP, or access this dashboard via HTTPS.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Switch to app mode */}
         {supportedModes.includes("app") && (

@@ -1,8 +1,8 @@
-import { LogIn, LogOut, Server, User } from "lucide-react";
+import { LogIn, LogOut, Server, User, AlertTriangle } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 
 export function Settings() {
-  const { mode, isAuthenticated, account, supportedModes, login, logout, switchMode } = useAuth();
+  const { mode, isAuthenticated, account, supportedModes, msalReady, login, logout, switchMode } = useAuth();
 
   return (
     <div className="space-y-6">
@@ -52,15 +52,19 @@ export function Settings() {
           {supportedModes.includes("user") && (
             <button
               onClick={() => {
+                if (!msalReady) return;
                 if (mode !== "user") {
                   switchMode("user");
                   if (!isAuthenticated) login();
                 }
               }}
+              disabled={!msalReady}
               className={`flex w-full items-center gap-4 rounded-lg border p-4 text-left transition-colors ${
                 mode === "user"
                   ? "border-blue-500/50 bg-blue-600/10"
-                  : "border-gray-800 hover:border-gray-700"
+                  : !msalReady
+                    ? "cursor-not-allowed border-gray-800 opacity-50"
+                    : "border-gray-800 hover:border-gray-700"
               }`}
             >
               <div
@@ -75,9 +79,14 @@ export function Settings() {
                   User OAuth
                 </p>
                 <p className="text-xs text-gray-500">
-                  Sign in with your Microsoft account (delegated permissions)
+                  {msalReady
+                    ? "Sign in with your Microsoft account (delegated permissions)"
+                    : "Requires HTTPS or localhost"}
                 </p>
               </div>
+              {!msalReady && (
+                <AlertTriangle className="h-4 w-4 shrink-0 text-yellow-500" />
+              )}
               {mode === "user" && (
                 <span className="rounded-full bg-blue-600/20 px-2 py-0.5 text-[10px] font-medium text-blue-400">
                   Active

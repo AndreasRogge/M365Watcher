@@ -7,12 +7,8 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import {
-  PublicClientApplication,
-  type AccountInfo,
-  InteractionRequiredAuthError,
-} from "@azure/msal-browser";
-import { buildMsalConfig, graphScopes } from "./msalConfig";
+import type { AccountInfo } from "@azure/msal-browser";
+import { graphScopes } from "./msalConfig";
 
 type AuthModeOption = "app" | "user";
 
@@ -28,6 +24,7 @@ interface AuthContextValue {
   account: AccountInfo | null;
   supportedModes: AuthModeOption[];
   loading: boolean;
+  msalReady: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
   switchMode: (mode: AuthModeOption) => void;
@@ -44,12 +41,24 @@ export function useAuth(): AuthContextValue {
 
 const MODE_STORAGE_KEY = "m365watcher_auth_mode";
 
+// Detect if crypto.subtle is available (requires HTTPS or localhost)
+function isSecureContext(): boolean {
+  try {
+    return typeof globalThis.crypto?.subtle !== "undefined";
+  } catch {
+    return false;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<AuthConfig | null>(null);
   const [mode, setMode] = useState<AuthModeOption>("app");
   const [account, setAccount] = useState<AccountInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const msalRef = useRef<PublicClientApplication | null>(null);
+  const [msalReady, setMsalReady] = useState(false);
+  // Use `any` for the ref since we lazy-import the MSAL module
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const msalRef = useRef<any>(null);
 
   // Fetch auth config from backend on mount
   useEffect(() => {
@@ -74,20 +83,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  // Initialize MSAL when config is available
+  // Lazy-initialize MSAL only when user mode is supported AND crypto.subtle is available.
+  // MSAL requires crypto.subtle (HTTPS or localhost). On plain HTTP to a non-localhost
+  // address, we skip MSAL init entirely — app credentials mode still works fine.
   useEffect(() => {
     if (!config) return;
+    if (!config.supportedModes.includes("user")) return;
+    if (!isSecureContext()) {
+      console.warn(
+        "[Auth] crypto.subtle is not available (requires HTTPS or localhost). " +
+        "User OAuth login is disabled. App credentials mode still works."
+      );
+      return;
+    }
 
-    const msalConfig = buildMsalConfig(config.clientId, config.tenantId);
-    const msal = new PublicClientApplication(msalConfig);
+    // Dynamic import to avoid loading MSAL at all when not needed
+    import("@azure/msal-browser").then(async ({ PublicClientApplication }) => {
+      try {
+        const { buildMsalConfig } = await import("./msalConfig");
+        const msalConfig = buildMsalConfig(config.clientId, config.tenantId);
+        const msal = new PublicClientApplication(msalConfig);
+        await msal.initialize();
+        msalRef.current = msal;
+        setMsalReady(true);
 
-    msal.initialize().then(() => {
-      msalRef.current = msal;
-      // Check for cached accounts
-      const accounts = msal.getAllAccounts();
-      if (accounts.length > 0) {
-        setAccount(accounts[0]);
+        // Check for cached accounts
+        const accounts = msal.getAllAccounts();
+        if (accounts.length > 0) {
+          setAccount(accounts[0]);
+        }
+      } catch (err) {
+        console.error("[Auth] MSAL initialization failed:", err);
       }
+    }).catch((err) => {
+      console.error("[Auth] Failed to load MSAL module:", err);
     });
   }, [config]);
 
@@ -149,17 +178,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       return result.accessToken;
     } catch (err) {
-      if (err instanceof InteractionRequiredAuthError) {
-        try {
+      // Dynamic import to avoid top-level MSAL dependency
+      try {
+        const { InteractionRequiredAuthError } = await import("@azure/msal-browser");
+        if (err instanceof InteractionRequiredAuthError) {
           const result = await msal.acquireTokenPopup({
             scopes: graphScopes,
             account,
           });
           return result.accessToken;
-        } catch (popupErr) {
-          console.error("Token acquisition popup failed:", popupErr);
-          return null;
         }
+      } catch (popupErr) {
+        console.error("Token acquisition popup failed:", popupErr);
+        return null;
       }
       console.error("Token acquisition failed:", err);
       return null;
@@ -176,6 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         account,
         supportedModes: config?.supportedModes ?? [],
         loading,
+        msalReady,
         login,
         logout,
         switchMode,
