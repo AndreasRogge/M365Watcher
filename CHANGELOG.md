@@ -20,6 +20,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - New **Settings page** showing the active authentication mode, signed-in user info, and a toggle to switch between user and app modes in `dual` configuration
   - **Sidebar** updated with a Settings navigation item and a footer area showing the signed-in user's avatar (user mode) or an app credentials badge (app mode)
 
+### Fixed
+- **Dashboard OAuth authentication** now correctly validates user tokens from the Microsoft identity platform. The JWT middleware previously rejected valid OAuth-obtained tokens because it only accepted the Graph API endpoint (`https://graph.microsoft.com`) as the token audience. OAuth user tokens have the dashboard app's client ID as their audience instead. Now the middleware accepts both audiences to support both app credentials (Graph API) and user authentication (app client ID) flows.
+
 ### Changed
 - Extracted the 107 verified UTCM resource types from three previously duplicated locations into a single shared JSON catalog at `data/resourceTypes.json` (repo root). This file is now the single source of truth for all resource type data across the PowerShell module and the web dashboard.
   - `src/M365Watcher/Private/Constants.ps1` — replaced the hardcoded `$script:VerifiedResourceTypes` flat array with a JSON loader that reads `data/resourceTypes.json` at module import time. Both `$script:ResourceTypeCatalog` (structured, by workload) and `$script:VerifiedResourceTypes` (flat array) are still available; no breaking change to callers.
