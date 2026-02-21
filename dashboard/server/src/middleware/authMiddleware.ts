@@ -64,7 +64,7 @@ async function validateBearerToken(token: string): Promise<jwt.JwtPayload> {
     payload = jwt.verify(token, signingKey, {
       algorithms: ["RS256"],
       issuer: TRUSTED_ISSUERS,
-      audience: "https://graph.microsoft.com",
+      audience: [config.azure.clientId, "https://graph.microsoft.com"],
     }) as jwt.JwtPayload;
   } catch (err) {
     const detail = err instanceof Error ? err.message : "unknown";
