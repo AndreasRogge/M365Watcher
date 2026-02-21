@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **OAuth user login for the web dashboard** via Authorization Code + PKCE redirect flow using MSAL Browser, allowing users to authenticate with their own Microsoft 365 identity instead of relying solely on app credentials
   - `AUTH_MODE` environment variable (`app` / `user` / `dual`) controls which authentication modes are available. Defaults to `dual`.
   - `AZURE_CLIENT_SECRET` is now optional when `AUTH_MODE` is set to `user`, since the OAuth PKCE flow does not require a client secret
-  - Lightweight token validation middleware decodes the user's Microsoft Graph access token (tenant ID + expiry check) for dashboard authentication. Graph access tokens are opaque and not intended for third-party JWKS verification — Graph API itself validates them when used for API calls.
+  - JWT validation middleware authenticates dashboard sessions by verifying the RS256 signature of the user's Entra ID token using Microsoft's JWKS endpoint, and validating the issuer, audience, expiry, and tenant ID claims.
   - `AsyncLocalStorage`-based request context tracks the authenticated user per request. Graph API calls always prefer client credentials (application permissions) when available, since the UTCM beta endpoints require application permissions. The user's OAuth token is used exclusively for dashboard session authentication.
   - New server endpoints: `GET /api/auth/config` (public, returns tenant ID and client ID for MSAL initialization) and `GET /api/auth/status` (returns current auth mode and session info)
   - MSAL Browser integration on the React frontend with redirect-based login (navigates to Microsoft login and back, no popups)
@@ -19,6 +19,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - New **Login page** with "Sign in with Microsoft" and "Use App Credentials" options presented according to the configured `AUTH_MODE`
   - New **Settings page** showing the active authentication mode, signed-in user info, and a toggle to switch between user and app modes in `dual` configuration
   - **Sidebar** updated with a Settings navigation item and a footer area showing the signed-in user's avatar (user mode) or an app credentials badge (app mode)
+
+### Fixed
+- **Dashboard OAuth "invalid signature" error** — the frontend was sending the Microsoft Graph access token to the backend for authentication, but Graph access tokens use a proprietary nonce-based signature that standard JWT libraries cannot verify. The frontend now sends the Entra ID token (a standard JWT with `aud: clientId`) instead. The backend JWKS client also now supports both v1.0 and v2.0 Entra ID token formats by selecting the correct JWKS endpoint based on the token's issuer claim.
 
 ### Changed
 - Extracted the 107 verified UTCM resource types from three previously duplicated locations into a single shared JSON catalog at `data/resourceTypes.json` (repo root). This file is now the single source of truth for all resource type data across the PowerShell module and the web dashboard.
@@ -29,6 +32,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `dashboard/Dockerfile` — changed build context to the repo root so the multi-stage build can reference paths under both `dashboard/` and `data/`. Added `COPY data/ ./data/` to include the shared resource type catalog in the image.
 - `dashboard/docker-compose.yml` — updated `build` from a simple `build: .` to an explicit `context: ..` / `dockerfile: dashboard/Dockerfile` form so Docker Compose uses the repo root as the build context.
 - Added `.dockerignore` at the repo root to exclude `.git`, `node_modules`, test files, and other non-essential paths from the Docker build context.
+
+### Security
+- **JWT authentication middleware now performs cryptographic signature verification** — the previous implementation used `jwt.decode()`, which does not verify signatures, allowing a forged JWT with a known tenant ID to bypass all user-mode authentication. The middleware now uses `jwt.verify()` with JWKS-based signature validation: it fetches the RSA public signing key matching the token's `kid` from Microsoft's Entra ID JWKS endpoint, verifies the RS256 signature, and validates the `issuer`, `audience` (app client ID), and `exp` claims. Both v1.0 and v2.0 Entra ID token formats are supported via issuer-aware JWKS endpoint selection. A defense-in-depth tenant ID check (`tid` claim) is also performed. Signing keys are cached for 10 minutes to avoid unnecessary network calls.
 
 ### Fixed
 - **OAuth login switched from popup to redirect flow** — the popup-based MSAL login flow failed when COOP (Cross-Origin-Opener-Policy) headers severed `window.opener` during cross-origin navigation to the Microsoft login page, causing the popup to hang with no callback. Replaced with the redirect flow, which is more reliable behind reverse proxies and does not depend on `window.opener` being preserved.
