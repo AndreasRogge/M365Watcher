@@ -7,10 +7,9 @@ import { requestContext, RequestAuthContext } from "./requestContext.js";
 /**
  * JWKS clients for fetching Microsoft Entra ID signing keys.
  *
- * Microsoft Graph access tokens are always v1.0 format (signed with v1.0 keys)
- * regardless of the app's accessTokenAcceptedVersion. User ID tokens may be
- * v2.0 if the app manifest is configured accordingly. We maintain two JWKS
- * clients and select based on the token's issuer claim.
+ * ID tokens may be v1.0 or v2.0 format depending on the app registration's
+ * accessTokenAcceptedVersion. We maintain two JWKS clients and select based
+ * on the token's issuer claim (sts.windows.net → v1.0, login.microsoftonline.com → v2.0).
  */
 const jwksClientV2 = jwksRsa({
   jwksUri: `https://login.microsoftonline.com/${config.azure.tenantId}/discovery/v2.0/keys`,
@@ -68,15 +67,11 @@ async function validateBearerToken(token: string): Promise<jwt.JwtPayload> {
     throw new Error("The provided token is not a valid JWT.");
   }
 
-  const payload0 = decoded.payload as jwt.JwtPayload;
-  const tokenIssuer = payload0.iss || "";
-  console.log("[Auth] Token header:", JSON.stringify(decoded.header));
-  console.log("[Auth] Token issuer:", tokenIssuer, "| aud:", payload0.aud);
+  const tokenIssuer = (decoded.payload as jwt.JwtPayload).iss || "";
 
   // Step 2: Fetch the RSA public key matching the token's kid.
   // Use the issuer to select the correct JWKS endpoint (v1.0 vs v2.0).
   const signingKey = await getSigningKey(decoded.header, tokenIssuer);
-  console.log("[Auth] Successfully fetched signing key for kid:", decoded.header.kid);
 
   // Step 3: Verify the cryptographic signature and validate claims.
   let payload: jwt.JwtPayload;
@@ -87,15 +82,12 @@ async function validateBearerToken(token: string): Promise<jwt.JwtPayload> {
       audience: config.azure.clientId,
     }) as jwt.JwtPayload;
   } catch (err) {
-    const detail = err instanceof Error ? err.message : "unknown";
-    console.warn(`[Auth] JWT verification failed: ${detail}`);
     throw new Error("The provided token is invalid or has expired.");
   }
 
   // Step 4: Defense-in-depth tenant check (issuer already covers this).
   const tid = payload.tid as string | undefined;
   if (!tid || tid !== config.azure.tenantId) {
-    console.warn(`[Auth] Token tenant mismatch: expected ${config.azure.tenantId}, got ${tid}`);
     throw new Error("The provided token is invalid or has expired.");
   }
 
