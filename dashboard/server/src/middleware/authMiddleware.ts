@@ -55,8 +55,12 @@ async function validateBearerToken(token: string): Promise<jwt.JwtPayload> {
     throw new Error("The provided token is not a valid JWT.");
   }
 
+  console.log("[Auth] Token header:", JSON.stringify(decoded.header));
+  console.log("[Auth] Token payload:", JSON.stringify(decoded.payload));
+
   // Step 2: Fetch the RSA public key matching the token's kid.
   const signingKey = await getSigningKey(decoded.header);
+  console.log("[Auth] Successfully fetched signing key for kid:", decoded.header.kid);
 
   // Step 3: Verify the cryptographic signature and validate claims.
   let payload: jwt.JwtPayload;
