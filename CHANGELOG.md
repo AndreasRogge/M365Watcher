@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **OAuth user login for the web dashboard** via Authorization Code + PKCE redirect flow using MSAL Browser, allowing users to authenticate with their own Microsoft 365 identity instead of relying solely on app credentials
   - `AUTH_MODE` environment variable (`app` / `user` / `dual`) controls which authentication modes are available. Defaults to `dual`.
   - `AZURE_CLIENT_SECRET` is now optional when `AUTH_MODE` is set to `user`, since the OAuth PKCE flow does not require a client secret
-  - Lightweight token validation middleware decodes the user's Microsoft Graph access token (tenant ID + expiry check) for dashboard authentication. Graph access tokens are opaque and not intended for third-party JWKS verification — Graph API itself validates them when used for API calls.
+  - JWT validation middleware authenticates dashboard sessions by verifying the RS256 signature of the Entra ID access token using Microsoft's JWKS endpoint, and validating the issuer, audience, expiry, and tenant ID claims.
   - `AsyncLocalStorage`-based request context tracks the authenticated user per request. Graph API calls always prefer client credentials (application permissions) when available, since the UTCM beta endpoints require application permissions. The user's OAuth token is used exclusively for dashboard session authentication.
   - New server endpoints: `GET /api/auth/config` (public, returns tenant ID and client ID for MSAL initialization) and `GET /api/auth/status` (returns current auth mode and session info)
   - MSAL Browser integration on the React frontend with redirect-based login (navigates to Microsoft login and back, no popups)
@@ -29,6 +29,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `dashboard/Dockerfile` — changed build context to the repo root so the multi-stage build can reference paths under both `dashboard/` and `data/`. Added `COPY data/ ./data/` to include the shared resource type catalog in the image.
 - `dashboard/docker-compose.yml` — updated `build` from a simple `build: .` to an explicit `context: ..` / `dockerfile: dashboard/Dockerfile` form so Docker Compose uses the repo root as the build context.
 - Added `.dockerignore` at the repo root to exclude `.git`, `node_modules`, test files, and other non-essential paths from the Docker build context.
+
+### Security
+- **JWT authentication middleware now performs cryptographic signature verification** — the previous implementation used `jwt.decode()`, which does not verify signatures, allowing a forged JWT with a known tenant ID to bypass all user-mode authentication. The middleware now uses `jwt.verify()` with JWKS-based signature validation: it fetches the RSA public signing key matching the token's `kid` from Microsoft's Entra ID JWKS endpoint (`login.microsoftonline.com/{tenantId}/discovery/v2.0/keys`), verifies the RS256 signature, and validates the `issuer`, `audience` (`https://graph.microsoft.com`), and `exp` claims. A defense-in-depth tenant ID check (`tid` claim) is also performed. Signing keys are cached for 10 minutes to avoid unnecessary network calls.
 
 ### Fixed
 - **OAuth login switched from popup to redirect flow** — the popup-based MSAL login flow failed when COOP (Cross-Origin-Opener-Policy) headers severed `window.opener` during cross-origin navigation to the Microsoft login page, causing the popup to hang with no callback. Replaced with the redirect flow, which is more reliable behind reverse proxies and does not depend on `window.opener` being preserved.

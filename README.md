@@ -95,7 +95,7 @@ npm run dev
 # Backend on http://localhost:3001, Frontend on http://localhost:5173
 ```
 
-The Azure App Registration must have `ConfigurationMonitoring.ReadWrite.All` (Application permission, admin consented). Graph API calls always use client credentials (application permissions) even when a user is signed in via OAuth, since the UTCM beta endpoints require application permissions. For user OAuth mode, the registration needs a **SPA platform** redirect URI configured for `http://localhost:5173` (development) or your production origin (e.g. `https://192.168.178.32`). No additional delegated permissions are required — the user's OAuth token is used only for dashboard session authentication. See [dashboard/.env.example](dashboard/.env.example) for configuration.
+The Azure App Registration must have `ConfigurationMonitoring.ReadWrite.All` (Application permission, admin consented). Graph API calls always use client credentials (application permissions) even when a user is signed in via OAuth, since the UTCM beta endpoints require application permissions. For user OAuth mode, the registration needs a **SPA platform** redirect URI configured for `http://localhost:5173` (development) or your production origin (e.g. `https://192.168.178.32`). No additional delegated permissions are required — the user's OAuth token is used only for dashboard session authentication. The server validates each token by verifying its RS256 signature using Microsoft's Entra ID JWKS endpoint (`login.microsoftonline.com/{tenantId}/discovery/v2.0/keys`) and checking the issuer, audience, expiry, and tenant ID claims. See [dashboard/.env.example](dashboard/.env.example) for configuration.
 
 For self-hosting on Proxmox, see [dashboard/PROXMOX-SETUP.md](dashboard/PROXMOX-SETUP.md).
 
