@@ -5,11 +5,22 @@ import { config } from "../config.js";
 import { requestContext, RequestAuthContext } from "./requestContext.js";
 
 /**
- * JWKS client for fetching Microsoft Entra ID signing keys.
- * Keys are cached for 10 minutes to avoid repeated network calls.
+ * JWKS clients for fetching Microsoft Entra ID signing keys.
+ *
+ * Microsoft Graph access tokens are always v1.0 format (signed with v1.0 keys)
+ * regardless of the app's accessTokenAcceptedVersion. User ID tokens may be
+ * v2.0 if the app manifest is configured accordingly. We maintain two JWKS
+ * clients and select based on the token's issuer claim.
  */
-const jwksClient = jwksRsa({
+const jwksClientV2 = jwksRsa({
   jwksUri: `https://login.microsoftonline.com/${config.azure.tenantId}/discovery/v2.0/keys`,
+  cache: true,
+  cacheMaxEntries: 5,
+  cacheMaxAge: 10 * 60 * 1000, // 10 minutes
+});
+
+const jwksClientV1 = jwksRsa({
+  jwksUri: `https://login.microsoftonline.com/${config.azure.tenantId}/discovery/keys`,
   cache: true,
   cacheMaxEntries: 5,
   cacheMaxAge: 10 * 60 * 1000, // 10 minutes
@@ -17,13 +28,15 @@ const jwksClient = jwksRsa({
 
 /**
  * Resolve the RSA public key for a given JWT header's key ID (kid).
+ * Selects the appropriate JWKS endpoint (v1.0 or v2.0) based on the token's issuer.
  */
-function getSigningKey(header: jwt.JwtHeader): Promise<string> {
+function getSigningKey(header: jwt.JwtHeader, issuer: string): Promise<string> {
+  const client = issuer.includes("sts.windows.net") ? jwksClientV1 : jwksClientV2;
   return new Promise((resolve, reject) => {
     if (!header.kid) {
       return reject(new Error("Token header is missing the 'kid' claim."));
     }
-    jwksClient.getSigningKey(header.kid, (err, key) => {
+    client.getSigningKey(header.kid, (err, key) => {
       if (err || !key) {
         return reject(err ?? new Error("Signing key not found for the provided kid."));
       }
@@ -55,11 +68,14 @@ async function validateBearerToken(token: string): Promise<jwt.JwtPayload> {
     throw new Error("The provided token is not a valid JWT.");
   }
 
+  const payload0 = decoded.payload as jwt.JwtPayload;
+  const tokenIssuer = payload0.iss || "";
   console.log("[Auth] Token header:", JSON.stringify(decoded.header));
-  console.log("[Auth] Token payload:", JSON.stringify(decoded.payload));
+  console.log("[Auth] Token issuer:", tokenIssuer, "| aud:", payload0.aud);
 
   // Step 2: Fetch the RSA public key matching the token's kid.
-  const signingKey = await getSigningKey(decoded.header);
+  // Use the issuer to select the correct JWKS endpoint (v1.0 vs v2.0).
+  const signingKey = await getSigningKey(decoded.header, tokenIssuer);
   console.log("[Auth] Successfully fetched signing key for kid:", decoded.header.kid);
 
   // Step 3: Verify the cryptographic signature and validate claims.
@@ -68,7 +84,11 @@ async function validateBearerToken(token: string): Promise<jwt.JwtPayload> {
     payload = jwt.verify(token, signingKey, {
       algorithms: ["RS256"],
       issuer: TRUSTED_ISSUERS,
-      audience: [config.azure.clientId, "https://graph.microsoft.com"],
+      audience: [
+        config.azure.clientId,
+        "https://graph.microsoft.com",
+        "00000003-0000-0000-c000-000000000000", // Microsoft Graph app ID (v1.0 tokens)
+      ],
     }) as jwt.JwtPayload;
   } catch (err) {
     const detail = err instanceof Error ? err.message : "unknown";
