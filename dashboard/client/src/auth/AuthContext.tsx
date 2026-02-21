@@ -178,11 +178,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!msal) return null;
 
     try {
+      // We request Graph scopes to keep the MSAL cache warm, but send the
+      // ID token (not the Graph access token) to our backend for authentication.
+      // Graph access tokens use a proprietary nonce-based signature that
+      // standard JWT libraries cannot verify. ID tokens are standard JWTs.
       const result = await msal.acquireTokenSilent({
         scopes: graphScopes,
         account,
       });
-      return result.accessToken;
+      return result.idToken;
     } catch (err) {
       // Dynamic import to avoid top-level MSAL dependency
       try {
