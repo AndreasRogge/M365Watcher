@@ -1,4 +1,35 @@
-# Microsoft Graph UTCM PowerShell Script - Quick Reference Guide
+# M365Watcher - Microsoft 365 Configuration Monitoring
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Prerequisites](#prerequisites)
+- [Multi-Tenant Setup Guide](#multi-tenant-setup-guide)
+  - [Step 1: Create the App Registration (Home Tenant)](#step-1-create-the-app-registration-home-tenant)
+  - [Step 2: Configure API Permissions (Home Tenant)](#step-2-configure-api-permissions-home-tenant)
+  - [Step 3: Configure Authentication for User Login (Home Tenant)](#step-3-configure-authentication-for-user-login-home-tenant)
+  - [Step 4: Create a Client Secret (Home Tenant)](#step-4-create-a-client-secret-home-tenant)
+  - [Step 5: Grant Admin Consent in Partner Tenants](#step-5-grant-admin-consent-in-partner-tenants)
+  - [How It Works](#how-it-works)
+  - [Troubleshooting Multi-Tenant Setup](#troubleshooting-multi-tenant-setup)
+- [Supported Workloads](#supported-workloads)
+- [Web Dashboard](#web-dashboard)
+  - [Dashboard Quick Start](#dashboard-quick-start)
+- [Available Functions](#available-functions)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+  - [Interactive Mode](#interactive-mode-recommended-for-beginners)
+  - [Command-Line Mode](#command-line-mode)
+- [Common Usage Examples](#common-usage-examples)
+- [Resource Types Reference](#resource-types-reference)
+- [Required Permissions by Resource Type](#required-permissions-by-resource-type)
+- [Important Limitations & Known Issues](#important-limitations--known-issues)
+- [Troubleshooting](#troubleshooting)
+- [Best Practices](#best-practices)
+- [Automation Examples](#automation-examples)
+- [Testing](#testing)
+- [Additional Resources](#additional-resources)
 
 ## Overview
 
@@ -35,6 +66,131 @@ This PowerShell module provides comprehensive management of Microsoft's Unified 
   - Graph API: `ConfigurationMonitoring.ReadWrite.All`
   - Service Principal: Various workload-specific permissions
 - **UTCM Availability:** UTCM must be enabled in your tenant (currently in preview)
+
+## Multi-Tenant Setup Guide
+
+M365Watcher uses a single Azure AD app registration to manage multiple Microsoft 365 tenants. This means you create the app once in your home tenant, then grant it access in each additional tenant you want to monitor. No separate app registrations are needed per tenant.
+
+### Step 1: Create the App Registration (Home Tenant)
+
+1. Go to [Entra ID > App registrations](https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade)
+2. Click **New registration**
+3. Configure the following:
+   - **Name**: `M365Watcher` (or any name you prefer)
+   - **Supported account types**: Select **"Accounts in any organizational directory (Any Microsoft Entra ID tenant - Multitenant)"**
+   - **Redirect URI**: Leave blank for now (we'll add it in Step 3)
+4. Click **Register**
+5. Note down the **Application (client) ID** and **Directory (tenant) ID** from the Overview page — you'll need these for the `.env` file
+
+> **Important:** The "Multitenant" account type is what allows this single app to work across multiple tenants. If you select "Single tenant", partner tenants will not be able to use this app.
+
+### Step 2: Configure API Permissions (Home Tenant)
+
+1. In your app registration, go to **API permissions**
+2. Click **Add a permission** > **Microsoft Graph** > **Application permissions**
+3. Search for and add: **`ConfigurationMonitoring.ReadWrite.All`**
+4. Click **Grant admin consent for [your tenant]** (requires Global Administrator or Privileged Role Administrator)
+
+The green checkmark should appear next to the permission, confirming consent is granted.
+
+### Step 3: Configure Authentication for User Login (Home Tenant)
+
+This step is only needed if you want to use OAuth user login (`AUTH_MODE=user` or `AUTH_MODE=dual`). Skip this if you only use app credentials (`AUTH_MODE=app`).
+
+1. In your app registration, go to **Authentication**
+2. Click **Add a platform** > **Single-page application (SPA)**
+3. Add redirect URIs for your deployment:
+   - Development: `http://localhost:5173`
+   - Production: `http://<your-server-ip>:3001` or `https://your-domain.com`
+4. Click **Configure**
+
+> **Note:** For user login, your account can be a guest in other tenants. When you sign in, your home tenant issues the token, and M365Watcher accepts it as long as the tenant is in the `ALLOWED_TENANT_IDS` list. No extra delegated permissions are needed — the user token is only used for dashboard session authentication, not for Graph API calls.
+
+### Step 4: Create a Client Secret (Home Tenant)
+
+This step is only needed if you use app credentials (`AUTH_MODE=app` or `AUTH_MODE=dual`). Skip this if you only use user login (`AUTH_MODE=user`).
+
+1. In your app registration, go to **Certificates & secrets**
+2. Click **New client secret**
+3. Add a description (e.g., "M365Watcher Dashboard") and choose an expiry period
+4. Click **Add**
+5. **Copy the secret value immediately** — it will not be shown again
+
+### Step 5: Grant Admin Consent in Partner Tenants
+
+This is the key step that makes multi-tenant work. Each tenant you want to monitor needs to "recognize" your app registration. This is a one-time step per tenant.
+
+**What admin consent does:** It creates a "service principal" (enterprise application) for your app in the partner tenant. This does not grant any user permissions — it simply tells the partner tenant "this app ID is legitimate, allow it to operate here." Without this step, the partner tenant has never seen your app ID and will reject all requests with "Application not found in directory."
+
+**Why it's needed:** When you use tools like Graph Explorer or the PowerShell SDK interactively, they use Microsoft's own pre-registered app IDs, which are already trusted in every tenant globally. Your custom app registration is unknown to other tenants until an admin consents to it.
+
+**How to grant admin consent:**
+
+An administrator (Global Administrator or Application Administrator) of the partner tenant needs to open the following URL in their browser:
+
+```
+https://login.microsoftonline.com/{partner-tenant-id}/adminconsent?client_id={your-client-id}
+```
+
+Replace the placeholders:
+- `{partner-tenant-id}` — the Azure AD tenant ID (GUID) of the partner tenant
+- `{your-client-id}` — the Application (client) ID from Step 1
+
+**Example:**
+```
+https://login.microsoftonline.com/87654321-abcd-efgh-ijkl-123456789012/adminconsent?client_id=f42b5eee-337b-445e-8d08-099d6a4c6c72
+```
+
+The admin will see a consent screen listing the permissions your app requests (`ConfigurationMonitoring.ReadWrite.All`). After clicking **Accept**:
+
+1. A service principal for your app is created in their tenant
+2. The application permission is granted
+3. Both app credentials (client secret) and delegated access (your guest account) will work against that tenant
+
+**If you are the admin of the partner tenant**, simply open the URL yourself and accept.
+
+**After consent is granted:**
+- Register the tenant in the M365Watcher dashboard (Tenants page > Add Tenant)
+- Click **Test Connection** — it should show a green checkmark
+- Use the tenant selector in the sidebar to switch between tenants
+
+### How It Works
+
+```
+Your Home Tenant                     Partner Tenant
++-----------------------+            +-----------------------+
+| App Registration      |            | Service Principal     |
+| - Client ID           |  consent   | (created by admin     |
+| - Client Secret       | ---------> |  consent in Step 5)   |
+| - Multi-tenant: Yes   |            | - Same Client ID      |
+| - ConfigMonitoring    |            | - ConfigMonitoring    |
+|   .ReadWrite.All      |            |   .ReadWrite.All      |
++-----------------------+            +-----------------------+
+         |                                    |
+         |  acquireTokenByClientCredential    |
+         |  (authority: partner tenant ID)    |
+         +----------------------------------->|
+                                              |
+                                        Token issued
+                                              |
+         <------------------------------------+
+         |
+    Use token to call Graph API
+    for partner tenant's UTCM data
+```
+
+- **App credentials flow**: M365Watcher uses the same client ID and client secret for every tenant, but changes the MSAL authority URL to the target tenant ID. Each tenant issues its own token.
+- **User login flow**: Your account (which is a guest in the partner tenant) authenticates via OAuth. The dashboard sends the ID token to the backend for session authentication. Graph API calls still use client credentials.
+
+### Troubleshooting Multi-Tenant Setup
+
+| Error | Cause | Solution |
+|---|---|---|
+| `AADSTS700016: Application not found in directory` | Admin consent not granted in that tenant | Have the tenant admin open the admin consent URL (Step 5) |
+| `AADSTS65001: The user or administrator has not consented` | Consent was partially granted or revoked | Re-run the admin consent URL |
+| `AADSTS700027: Client assertion is not within its valid time range` | Clock skew between servers | Sync the server clock (NTP) |
+| `Token acquired but Graph call failed with HTTP 403` | Token works but the specific API endpoint needs different permissions | `ConfigurationMonitoring.ReadWrite.All` should be sufficient for UTCM. The Test Connection button only verifies token acquisition, not specific API calls. |
+| Test Connection succeeds but no data loads | The tenant may not have UTCM enabled (preview feature) | Use `Test-UTCMAvailability` in PowerShell against that tenant |
 
 ## Supported Workloads
 
