@@ -53,13 +53,21 @@ router.post("/", async (req, res, next) => {
     const tenant = await createTenant({ displayName, tenantId, color });
     res.status(201).json(tenant);
   } catch (err) {
-    if (err instanceof Error && err.message.includes("already registered")) {
-      res.status(409).json({ error: { code: "Conflict", message: err.message } });
-      return;
-    }
-    if (err instanceof Error && err.message.includes("Invalid tenant ID")) {
-      res.status(400).json({ error: { code: "BadRequest", message: err.message } });
-      return;
+    if (err instanceof Error) {
+      if (err.message.includes("already registered")) {
+        res.status(409).json({ error: { code: "Conflict", message: err.message } });
+        return;
+      }
+      // Validation errors from tenantStore (GUID format, allowlist, displayName, color)
+      if (
+        err.message.includes("Invalid tenant ID") ||
+        err.message.includes("not in the allowed tenant list") ||
+        err.message.includes("Display name") ||
+        err.message.includes("Invalid color")
+      ) {
+        res.status(400).json({ error: { code: "BadRequest", message: err.message } });
+        return;
+      }
     }
     next(err);
   }
@@ -72,9 +80,15 @@ router.put("/:id", async (req, res, next) => {
     const tenant = await updateTenant(req.params.id, { displayName, color });
     res.json(tenant);
   } catch (err) {
-    if (err instanceof Error && err.message.includes("not found")) {
-      res.status(404).json({ error: { code: "NotFound", message: err.message } });
-      return;
+    if (err instanceof Error) {
+      if (err.message.includes("not found")) {
+        res.status(404).json({ error: { code: "NotFound", message: err.message } });
+        return;
+      }
+      if (err.message.includes("Display name") || err.message.includes("Invalid color")) {
+        res.status(400).json({ error: { code: "BadRequest", message: err.message } });
+        return;
+      }
     }
     next(err);
   }
