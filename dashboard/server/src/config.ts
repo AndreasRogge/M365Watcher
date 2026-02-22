@@ -29,19 +29,38 @@ const clientSecret: string | undefined = authMode === "user"
   ? process.env.AZURE_CLIENT_SECRET
   : requireEnv("AZURE_CLIENT_SECRET");
 
+// Allowed tenant IDs for multi-tenant user authentication.
+// The home tenant is always allowed. Additional tenants are loaded from
+// ALLOWED_TENANT_IDS (comma-separated). These are the tenants whose user
+// tokens will be accepted by the auth middleware.
+const homeTenantId = requireEnv("AZURE_TENANT_ID");
+const extraTenantIds = (process.env.ALLOWED_TENANT_IDS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+const allowedTenantIds = new Set<string>([homeTenantId, ...extraTenantIds]);
+
 export const config = {
   authMode,
   azure: {
-    tenantId: requireEnv("AZURE_TENANT_ID"),
+    tenantId: homeTenantId,
     clientId: requireEnv("AZURE_CLIENT_ID"),
     clientSecret,
+    allowedTenantIds,
   },
   server: {
     port: parseInt(process.env.PORT || "3001", 10),
+    allowedOrigins: (process.env.CORS_ORIGIN || "http://localhost:5173")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
   },
   graph: {
     baseUrl: "https://graph.microsoft.com",
     utcmBasePath: "/beta/admin/configurationManagement",
     scopes: ["https://graph.microsoft.com/.default"],
+  },
+  tenantStore: {
+    filePath: process.env.TENANT_STORE_PATH || resolve(__dirname, "../../data/tenants.json"),
   },
 };

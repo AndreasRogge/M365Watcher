@@ -11,9 +11,11 @@ import { StatusBadge } from "../components/shared/StatusBadge";
 import { LoadingSpinner } from "../components/shared/LoadingSpinner";
 import { ErrorDisplay } from "../components/shared/ErrorDisplay";
 import { formatRelativeTime, getWorkloadFromType, getResourceShortName } from "../lib/utils";
+import { useTenant } from "../context/TenantContext";
 
 export function Overview() {
   const { data: summary, isLoading, error, refetch } = useSummary();
+  const { activeTenant } = useTenant();
 
   if (isLoading) return <LoadingSpinner message="Loading dashboard..." />;
   if (error)
@@ -68,6 +70,7 @@ export function Overview() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-100">Dashboard</h1>
         <p className="mt-1 text-sm text-gray-400">
+          {activeTenant ? `${activeTenant.displayName} — ` : ""}
           Microsoft 365 configuration monitoring overview
         </p>
       </div>

@@ -7,6 +7,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **Multi-tenant support** — register and manage multiple M365 tenants from a single dashboard instance using a shared multi-tenant app registration
+  - Tenant selector component in the dashboard sidebar for switching between active tenants without reloading the page
+  - Tenant management page (`/tenants`) for registering, editing, testing connectivity, and removing tenants
+  - Backend tenant registry stored as a JSON file at `dashboard/data/tenants.json`; path is configurable via the `TENANT_STORE_PATH` environment variable
+  - Per-tenant MSAL client instances share a single multi-tenant app registration, eliminating the need for separate app registrations per tenant
+  - Multi-tenant token validation using the common (`/common`) JWKS endpoints and a tenant allowlist; tokens from any registered tenant are accepted
+  - Tenant resolution middleware reads the `X-Tenant-Id` request header, falls back to a `tenantId` query parameter, and finally falls back to the configured default tenant
+  - Auto-migration on first startup: existing single-tenant `AZURE_TENANT_ID` / `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` environment variables are automatically imported into `tenants.json` as the default tenant so existing deployments require no manual migration
+  - `ALLOWED_TENANT_IDS` environment variable — comma-separated list of additional tenant IDs whose user tokens are accepted for dashboard authentication (B2B guest scenarios)
+  - Three new PowerShell functions: `Get-UTCMTenantContext`, `Set-UTCMTenantContext`, `Compare-UTCMSnapshot`
+  - Multi-tenant section in the interactive console (options 19–22): list registered tenants, switch active tenant, compare snapshot across tenants, and reset to default
+  - 8 new Pester unit tests for multi-tenant context management (50 total tests)
 - **OAuth user login for the web dashboard** via Authorization Code + PKCE redirect flow using MSAL Browser, allowing users to authenticate with their own Microsoft 365 identity instead of relying solely on app credentials
   - `AUTH_MODE` environment variable (`app` / `user` / `dual`) controls which authentication modes are available. Defaults to `dual`.
   - `AZURE_CLIENT_SECRET` is now optional when `AUTH_MODE` is set to `user`, since the OAuth PKCE flow does not require a client secret
@@ -25,6 +37,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Dashboard OAuth authentication** now correctly validates user tokens from the Microsoft identity platform. The JWT middleware previously rejected valid user tokens because it only accepted the Graph API endpoint (`https://graph.microsoft.com`) as the audience claim. User tokens have the dashboard app's client ID as their audience instead. Now the middleware accepts both audiences to support both app credentials (Graph API endpoint) and user authentication (app client ID) flows.
 
 ### Changed
+- **Dashboard MSAL config** now uses the `organizations` authority instead of a tenant-specific authority, enabling B2B guest authentication and multi-tenant token acceptance
+- `graphClient.ts` refactored from a module-level singleton into a per-tenant MSAL client factory; each registered tenant receives its own `ConfidentialClientApplication` instance
+- `authMiddleware.ts` updated to validate tokens from any tenant listed in the registry or in `ALLOWED_TENANT_IDS`, using the common JWKS endpoint instead of per-tenant endpoints
+- Module manifest updated: 18 exported functions → 21 exported functions (`Get-UTCMTenantContext`, `Set-UTCMTenantContext`, `Compare-UTCMSnapshot` added)
+- Auth config endpoint (`GET /api/auth/config`) returns the client ID, tenant ID, and supported modes (tenant list moved to the authenticated `/api/tenants` endpoint)
 - Extracted the 107 verified UTCM resource types from three previously duplicated locations into a single shared JSON catalog at `data/resourceTypes.json` (repo root). This file is now the single source of truth for all resource type data across the PowerShell module and the web dashboard.
   - `src/M365Watcher/Private/Constants.ps1` — replaced the hardcoded `$script:VerifiedResourceTypes` flat array with a JSON loader that reads `data/resourceTypes.json` at module import time. Both `$script:ResourceTypeCatalog` (structured, by workload) and `$script:VerifiedResourceTypes` (flat array) are still available; no breaking change to callers.
   - `src/M365Watcher/Public/Get-UTCMResourceTypes.ps1` — replaced 130 lines of hardcoded `Write-Host` statements with a dynamic loop that renders from `$script:ResourceTypeCatalog`. Output is identical.
@@ -35,6 +52,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Added `.dockerignore` at the repo root to exclude `.git`, `node_modules`, test files, and other non-essential paths from the Docker build context.
 
 ### Security
+- **CORS hardened** — replaced permissive wildcard CORS with an explicit origin allowlist configured via the `CORS_ORIGIN` environment variable (comma-separated)
+- **Tenant list removed from public auth config** — the `GET /api/auth/config` endpoint no longer returns tenant registrations; tenants are now fetched from the authenticated `GET /api/tenants` endpoint only
+- **Tenant creation allowlist** — `POST /api/tenants` now rejects tenant IDs that are not present in the server's `ALLOWED_TENANT_IDS` configuration, preventing unauthorized tenants from being registered
+- **Input validation on tenant store** — display name length capped at 128 characters, color restricted to a defined allowlist, empty names rejected
+- **SSRF protection on Graph pagination** — `@odata.nextLink` URLs are now validated against the `graph.microsoft.com` origin before being followed, preventing server-side request forgery via crafted pagination links
+- **Opaque auth error messages** — token validation failures now always return a generic error message to the client; internal details are logged server-side only
+- **MSAL client cache eviction** — the per-tenant `ConfidentialClientApplication` cache is capped at 50 entries with LRU eviction to prevent unbounded memory growth
+- **Tenant IDOR protection** — in user auth mode, the tenant middleware now verifies that the JWT `tid` claim matches the requested tenant, preventing a user authenticated against one tenant from accessing another tenant's data via the `X-Tenant-Id` header
+- **PowerShell GUID validation** — `Connect-UTCM` and `Compare-UTCMSnapshot` tenant ID parameters now enforce a `[ValidatePattern]` GUID regex, preventing injection of arbitrary strings
+- **Compare-UTCMSnapshot context restoration** — Graph context switching is now wrapped in `try/finally` with explicit `-Scopes` on all `Connect-MgGraph` calls, ensuring the active tenant context is always restored even if an error occurs mid-comparison
 - **JWT authentication middleware now performs cryptographic signature verification** — the previous implementation used `jwt.decode()`, which does not verify signatures, allowing a forged JWT with a known tenant ID to bypass all user-mode authentication. The middleware now uses `jwt.verify()` with JWKS-based signature validation: it fetches the RSA public signing key matching the token's `kid` from Microsoft's Entra ID JWKS endpoint, verifies the RS256 signature, and validates the `issuer`, `audience` (app client ID), and `exp` claims. Both v1.0 and v2.0 Entra ID token formats are supported via issuer-aware JWKS endpoint selection. A defense-in-depth tenant ID check (`tid` claim) is also performed. Signing keys are cached for 10 minutes to avoid unnecessary network calls.
 
 ### Fixed

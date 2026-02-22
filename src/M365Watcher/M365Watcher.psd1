@@ -28,7 +28,10 @@
         'Get-UTCMSummary',
         'Get-UTCMResourceTypes',
         'Start-UTCMExample',
-        'Start-UTCMInteractive'
+        'Start-UTCMInteractive',
+        'Get-UTCMTenantContext',
+        'Set-UTCMTenantContext',
+        'Compare-UTCMSnapshot'
     )
 
     CmdletsToExport   = @()

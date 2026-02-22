@@ -14,7 +14,7 @@ export function setTokenProvider(provider: () => Promise<string | null>) {
   tokenProvider = provider;
 }
 
-// Request interceptor: attach bearer token when in user mode
+// Request interceptor: attach bearer token and tenant context
 api.interceptors.request.use(async (reqConfig) => {
   if (tokenProvider) {
     const token = await tokenProvider();
@@ -22,6 +22,13 @@ api.interceptors.request.use(async (reqConfig) => {
       reqConfig.headers.Authorization = `Bearer ${token}`;
     }
   }
+
+  // Inject active tenant ID so the backend routes to the correct tenant
+  const activeTenantId = sessionStorage.getItem("m365watcher_active_tenant");
+  if (activeTenantId) {
+    reqConfig.headers["X-Tenant-Id"] = activeTenantId;
+  }
+
   return reqConfig;
 });
 

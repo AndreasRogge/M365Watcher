@@ -6,7 +6,10 @@ import { dirname, resolve } from "path";
 import { config } from "./config.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { authMiddleware } from "./middleware/authMiddleware.js";
+import { tenantMiddleware } from "./middleware/tenantMiddleware.js";
+import { migrateExistingTenant } from "./services/tenantMigration.js";
 import authRoutes from "./routes/auth.js";
+import tenantRoutes from "./routes/tenants.js";
 import snapshotRoutes from "./routes/snapshots.js";
 import monitorRoutes from "./routes/monitors.js";
 import driftRoutes from "./routes/drifts.js";
@@ -20,7 +23,21 @@ const __dirname = dirname(__filename);
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow same-origin requests (origin is undefined for server-to-server)
+      if (!origin || config.server.allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS: origin '${origin}' is not allowed`));
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Tenant-Id"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // Auth config endpoint (public, before auth middleware)
@@ -29,7 +46,13 @@ app.use("/api/auth", authRoutes);
 // Auth middleware for all other API routes
 app.use("/api", authMiddleware);
 
-// API Routes
+// Tenant management routes (after auth, before tenant resolution)
+app.use("/api/tenants", tenantRoutes);
+
+// Tenant resolution middleware for data routes
+app.use("/api", tenantMiddleware);
+
+// API Routes (tenant-scoped)
 app.use("/api/snapshots", snapshotRoutes);
 app.use("/api/monitors", monitorRoutes);
 app.use("/api/drifts", driftRoutes);
@@ -55,14 +78,26 @@ if (existsSync(publicDir)) {
 // Error handling (must be last)
 app.use(errorHandler);
 
-app.listen(config.server.port, () => {
-  console.log(`
+// Run startup tasks then start the server
+async function start() {
+  // Auto-register existing single-tenant config if no tenants are registered yet
+  await migrateExistingTenant();
+
+  app.listen(config.server.port, () => {
+    console.log(`
   ╔══════════════════════════════════════════════╗
   ║   M365Watcher Dashboard API Server           ║
   ║   Running on http://localhost:${config.server.port}            ║
   ║                                              ║
-  ║   Tenant: ${config.azure.tenantId.substring(0, 8)}...  ║
-  ║   Client: ${config.azure.clientId.substring(0, 8)}...  ║
+  ║   Home Tenant: ${config.azure.tenantId.substring(0, 8)}...    ║
+  ║   Client: ${config.azure.clientId.substring(0, 8)}...         ║
+  ║   Allowed Tenants: ${config.azure.allowedTenantIds.size}                        ║
   ╚══════════════════════════════════════════════╝
-  `);
+    `);
+  });
+}
+
+start().catch((err) => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
 });

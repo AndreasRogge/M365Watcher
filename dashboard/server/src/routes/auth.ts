@@ -7,6 +7,7 @@ const router = Router();
 
 // Public — returns MSAL config for the frontend to bootstrap before auth.
 // tenantId and clientId are non-secret OAuth public identifiers.
+// Tenant details are intentionally omitted — fetch via GET /api/tenants after authentication.
 router.get("/config", (_req, res) => {
   const supportedModes: string[] = [];
   if (config.authMode === "app" || config.authMode === "dual") {

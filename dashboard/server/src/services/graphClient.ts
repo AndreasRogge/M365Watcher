@@ -3,28 +3,85 @@ import { config } from "../config.js";
 import { ApiError } from "../middleware/errorHandler.js";
 import { getRequestAuth } from "../middleware/requestContext.js";
 
-// MSAL client credentials app - only initialized when app mode is available and secret is set
-let msalClient: ConfidentialClientApplication | null = null;
-if (config.authMode !== "user" && config.azure.clientSecret) {
-  msalClient = new ConfidentialClientApplication({
-    auth: {
-      clientId: config.azure.clientId,
-      authority: `https://login.microsoftonline.com/${config.azure.tenantId}`,
-      clientSecret: config.azure.clientSecret,
-    },
-  });
+/**
+ * Per-tenant MSAL client cache.
+ *
+ * All instances share the same clientId/clientSecret (multi-tenant app registration)
+ * but use different authority URLs to acquire tokens scoped to each tenant.
+ */
+const MAX_CACHED_CLIENTS = 50;
+const msalClients = new Map<string, ConfidentialClientApplication>();
+
+function getMsalClient(tenantId: string): ConfidentialClientApplication {
+  let client = msalClients.get(tenantId);
+  if (!client) {
+    if (!config.azure.clientSecret) {
+      throw new ApiError(
+        500,
+        "ConfigError",
+        "Client credentials not configured. Set AZURE_CLIENT_SECRET."
+      );
+    }
+
+    // Evict oldest entry if cache is full to prevent unbounded growth
+    if (msalClients.size >= MAX_CACHED_CLIENTS) {
+      const oldestKey = msalClients.keys().next().value;
+      if (oldestKey) msalClients.delete(oldestKey);
+    }
+
+    client = new ConfidentialClientApplication({
+      auth: {
+        clientId: config.azure.clientId,
+        authority: `https://login.microsoftonline.com/${tenantId}`,
+        clientSecret: config.azure.clientSecret,
+      },
+    });
+    msalClients.set(tenantId, client);
+  }
+  return client;
+}
+
+/** Validate that a nextLink URL points to the Microsoft Graph API origin. */
+function isValidNextLink(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.origin === "https://graph.microsoft.com";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Resolve the target tenant ID from the request context.
+ * Falls back to the home tenant from config if no tenant context is set.
+ */
+function resolveTargetTenant(): string {
+  try {
+    const auth = getRequestAuth();
+    if (auth.tenantId) return auth.tenantId;
+  } catch {
+    // Outside request context — use home tenant
+  }
+  return config.azure.tenantId;
 }
 
 async function getAccessToken(): Promise<string> {
+  const targetTenantId = resolveTargetTenant();
+
   // Prefer client credentials for Graph API calls — the UTCM beta endpoints
   // require application permissions and don't support delegated tokens.
   // The user's OAuth token is used for dashboard authentication only.
-  if (msalClient) {
-    const result = await msalClient.acquireTokenByClientCredential({
+  if (config.authMode !== "user" && config.azure.clientSecret) {
+    const client = getMsalClient(targetTenantId);
+    const result = await client.acquireTokenByClientCredential({
       scopes: config.graph.scopes,
     });
     if (!result?.accessToken) {
-      throw new ApiError(401, "AuthenticationFailed", "Failed to acquire access token from Azure AD");
+      throw new ApiError(
+        401,
+        "AuthenticationFailed",
+        `Failed to acquire access token for tenant ${targetTenantId}`
+      );
     }
     return result.accessToken;
   }
@@ -35,7 +92,11 @@ async function getAccessToken(): Promise<string> {
     return auth.userToken;
   }
 
-  throw new ApiError(500, "ConfigError", "Client credentials not configured. Set AZURE_CLIENT_SECRET or use user authentication.");
+  throw new ApiError(
+    500,
+    "ConfigError",
+    "Client credentials not configured. Set AZURE_CLIENT_SECRET or use user authentication."
+  );
 }
 
 interface GraphRequestOptions {
@@ -60,6 +121,7 @@ interface GraphErrorBody {
  * Core Graph API client - faithful port of Invoke-UTCMGraphRequest from UTCM-Management.ps1.
  * Provides:
  * - MSAL client credentials authentication with automatic token caching
+ * - Per-tenant token acquisition (multi-tenant app registration)
  * - Exponential backoff retry for 429/503/504 with Retry-After header support
  * - Automatic @odata.nextLink pagination for GET requests
  * - Structured error extraction from Graph API error responses
@@ -137,6 +199,12 @@ export async function graphRequest<T = unknown>(
         let nextLink: string | undefined = data["@odata.nextLink"];
 
         while (nextLink) {
+          // Validate nextLink origin to prevent SSRF via crafted @odata.nextLink
+          if (!isValidNextLink(nextLink)) {
+            console.warn(`[GraphClient] Rejecting untrusted nextLink: ${nextLink}`);
+            break;
+          }
+
           const pageResponse = await fetch(nextLink, {
             method: "GET",
             headers: {

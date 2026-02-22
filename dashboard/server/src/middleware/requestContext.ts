@@ -2,6 +2,8 @@ import { AsyncLocalStorage } from "node:async_hooks";
 
 export interface RequestAuthContext {
   mode: "app" | "user";
+  /** Azure AD tenant ID for Graph API calls (resolved by tenantMiddleware). */
+  tenantId?: string;
   userToken?: string;
   userClaims?: Record<string, unknown>;
 }

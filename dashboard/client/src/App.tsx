@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { TenantProvider } from "./context/TenantContext";
 import { Layout } from "./components/layout/Layout";
 import { Overview } from "./pages/Overview";
 import { Snapshots } from "./pages/Snapshots";
@@ -11,6 +12,7 @@ import { Drifts } from "./pages/Drifts";
 import { DriftDetail } from "./pages/DriftDetail";
 import { MonitoringResults } from "./pages/MonitoringResults";
 import { ResourceTypes } from "./pages/ResourceTypes";
+import { Tenants } from "./pages/Tenants";
 import { Settings } from "./pages/SettingsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { useAuth } from "./auth/AuthContext";
@@ -61,6 +63,7 @@ function AppContent() {
           <Route path="drifts/:id" element={<DriftDetail />} />
           <Route path="monitoring-results" element={<MonitoringResults />} />
           <Route path="resource-types" element={<ResourceTypes />} />
+          <Route path="tenants" element={<Tenants />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
@@ -71,7 +74,9 @@ function AppContent() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AppContent />
+      <TenantProvider>
+        <AppContent />
+      </TenantProvider>
     </QueryClientProvider>
   );
 }

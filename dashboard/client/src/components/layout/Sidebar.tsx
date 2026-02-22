@@ -9,9 +9,11 @@ import {
   Shield,
   Settings,
   Server,
+  Building2,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useAuth } from "../../auth/AuthContext";
+import { TenantSelector } from "./TenantSelector";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Overview" },
@@ -20,6 +22,7 @@ const navItems = [
   { to: "/drifts", icon: GitCompareArrows, label: "Drifts" },
   { to: "/monitoring-results", icon: Activity, label: "Results" },
   { to: "/resource-types", icon: Blocks, label: "Resource Types" },
+  { to: "/tenants", icon: Building2, label: "Tenants" },
 ];
 
 export function Sidebar() {
@@ -38,6 +41,11 @@ export function Sidebar() {
             UTCM Dashboard
           </p>
         </div>
+      </div>
+
+      {/* Tenant Selector */}
+      <div className="pt-3">
+        <TenantSelector />
       </div>
 
       {/* Navigation */}

@@ -7,21 +7,22 @@ import { requestContext, RequestAuthContext } from "./requestContext.js";
 /**
  * JWKS clients for fetching Microsoft Entra ID signing keys.
  *
+ * Multi-tenant: we use the tenant-independent "common" JWKS endpoints so that
+ * tokens issued by any trusted tenant can be verified from a single client.
  * ID tokens may be v1.0 or v2.0 format depending on the app registration's
- * accessTokenAcceptedVersion. We maintain two JWKS clients and select based
- * on the token's issuer claim (sts.windows.net → v1.0, login.microsoftonline.com → v2.0).
+ * accessTokenAcceptedVersion. We select based on the token's issuer claim.
  */
 const jwksClientV2 = jwksRsa({
-  jwksUri: `https://login.microsoftonline.com/${config.azure.tenantId}/discovery/v2.0/keys`,
+  jwksUri: "https://login.microsoftonline.com/common/discovery/v2.0/keys",
   cache: true,
-  cacheMaxEntries: 5,
+  cacheMaxEntries: 10,
   cacheMaxAge: 10 * 60 * 1000, // 10 minutes
 });
 
 const jwksClientV1 = jwksRsa({
-  jwksUri: `https://login.microsoftonline.com/${config.azure.tenantId}/discovery/keys`,
+  jwksUri: "https://login.microsoftonline.com/common/discovery/keys",
   cache: true,
-  cacheMaxEntries: 5,
+  cacheMaxEntries: 10,
   cacheMaxAge: 10 * 60 * 1000, // 10 minutes
 });
 
@@ -44,54 +45,58 @@ function getSigningKey(header: jwt.JwtHeader, issuer: string): Promise<string> {
   });
 }
 
-/** Accepted issuer formats for Microsoft Entra ID tokens. */
-const TRUSTED_ISSUERS: [string, ...string[]] = [
-  `https://login.microsoftonline.com/${config.azure.tenantId}/v2.0`,
-  `https://sts.windows.net/${config.azure.tenantId}/`,
-];
-
 /**
  * Validate a bearer token's cryptographic signature and claims.
  *
- * Uses Microsoft's JWKS endpoint to fetch the signing key and jwt.verify()
- * to validate the RS256 signature, issuer, audience, and expiry. The tenant
- * ID is also checked as a defense-in-depth measure (the issuer check already
- * scopes to the correct tenant).
+ * Multi-tenant validation: instead of matching against a static issuer list,
+ * we extract the tenant ID from the token, verify it's in the allowlist,
+ * then dynamically construct the accepted issuers for that tenant.
  */
 async function validateBearerToken(token: string): Promise<jwt.JwtPayload> {
-  // Step 1: Decode header only to extract the key ID (kid).
-  // No trust is granted at this stage — we only need the kid to fetch the
-  // correct signing key from Microsoft's JWKS endpoint.
+  // Step 1: Decode header only to extract the key ID (kid) and tenant ID.
   const decoded = jwt.decode(token, { complete: true });
   if (!decoded || typeof decoded.payload === "string" || !decoded.header) {
     throw new Error("The provided token is not a valid JWT.");
   }
 
-  const tokenIssuer = (decoded.payload as jwt.JwtPayload).iss || "";
+  const payload = decoded.payload as jwt.JwtPayload;
+  const tokenIssuer = payload.iss || "";
+  const tokenTid = payload.tid as string | undefined;
 
-  // Step 2: Fetch the RSA public key matching the token's kid.
-  // Use the issuer to select the correct JWKS endpoint (v1.0 vs v2.0).
+  // Step 2: Check tenant ID against allowlist BEFORE any cryptographic work.
+  // This prevents fetching signing keys for tenants we would never accept.
+  if (!tokenTid || !config.azure.allowedTenantIds.has(tokenTid)) {
+    throw new Error("The provided token is invalid or has expired.");
+  }
+
+  // Step 3: Fetch the RSA public key matching the token's kid.
   const signingKey = await getSigningKey(decoded.header, tokenIssuer);
 
-  // Step 3: Verify the cryptographic signature and validate claims.
-  let payload: jwt.JwtPayload;
+  // Step 4: Build accepted issuers for this specific token's tenant.
+  const acceptedIssuers: [string, ...string[]] = [
+    `https://login.microsoftonline.com/${tokenTid}/v2.0`,
+    `https://sts.windows.net/${tokenTid}/`,
+  ];
+
+  // Step 5: Verify the cryptographic signature and validate claims.
+  let verifiedPayload: jwt.JwtPayload;
   try {
-    payload = jwt.verify(token, signingKey, {
+    verifiedPayload = jwt.verify(token, signingKey, {
       algorithms: ["RS256"],
-      issuer: TRUSTED_ISSUERS,
+      issuer: acceptedIssuers,
       audience: config.azure.clientId,
     }) as jwt.JwtPayload;
   } catch (err) {
     throw new Error("The provided token is invalid or has expired.");
   }
 
-  // Step 4: Defense-in-depth tenant check (issuer already covers this).
-  const tid = payload.tid as string | undefined;
-  if (!tid || tid !== config.azure.tenantId) {
+  // Step 6: Defense-in-depth — re-confirm tid on the verified payload.
+  const verifiedTid = verifiedPayload.tid as string | undefined;
+  if (!verifiedTid || !config.azure.allowedTenantIds.has(verifiedTid)) {
     throw new Error("The provided token is invalid or has expired.");
   }
 
-  return payload;
+  return verifiedPayload;
 }
 
 export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
@@ -118,10 +123,12 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
         requestContext.run(ctx, () => next());
       })
       .catch((err) => {
-        const message =
-          err instanceof Error ? err.message : "The provided token is invalid or has expired.";
+        // Always return an opaque message to avoid leaking internal validation details
+        if (err instanceof Error && err.message !== "The provided token is invalid or has expired.") {
+          console.warn(`[Auth] Token validation failed: ${err.message}`);
+        }
         res.status(401).json({
-          error: { code: "TokenValidationFailed", message },
+          error: { code: "TokenValidationFailed", message: "The provided token is invalid or has expired." },
         });
       });
     return;

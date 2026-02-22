@@ -19,9 +19,20 @@ function Start-UTCMInteractive {
         Write-Host "          UTCM Interactive Management Console" -ForegroundColor Cyan
         Write-Host "=================================================================" -ForegroundColor Cyan
 
-        Write-Host "`nConnected to: $($context.TenantId)" -ForegroundColor Green
-        Write-Host "Account: $($context.Account)`n" -ForegroundColor Green
+        $activeTenantId = Get-UTCMActiveTenantId
+        $allTenants = Get-UTCMAllTenants
+        if ($activeTenantId -and $allTenants.ContainsKey($activeTenantId)) {
+            $activeName = $allTenants[$activeTenantId].DisplayName
+            Write-Host "`nActive Tenant: $activeName ($activeTenantId)" -ForegroundColor Green
+        } else {
+            Write-Host "`nConnected to: $($context.TenantId)" -ForegroundColor Green
+        }
+        Write-Host "Account: $($context.Account)" -ForegroundColor Green
+        if ($allTenants.Count -gt 1) {
+            Write-Host "Connected Tenants: $($allTenants.Count)" -ForegroundColor Green
+        }
 
+        Write-Host ""
         Write-Host "=================================================================" -ForegroundColor Yellow
         Write-Host " Setup & Configuration" -ForegroundColor Yellow
         Write-Host "=================================================================" -ForegroundColor Yellow
@@ -59,6 +70,14 @@ function Start-UTCMInteractive {
         Write-Host " 16. Get UTCM Summary"
         Write-Host " 17. Show Available Resource Types"
         Write-Host " 18. Reconnect to Microsoft Graph"
+
+        Write-Host "`n=================================================================" -ForegroundColor Yellow
+        Write-Host " Multi-Tenant" -ForegroundColor Yellow
+        Write-Host "=================================================================" -ForegroundColor Yellow
+        Write-Host " 19. View Connected Tenants"
+        Write-Host " 20. Switch Active Tenant"
+        Write-Host " 21. Connect Additional Tenant"
+        Write-Host " 22. Compare Snapshots Across Tenants"
 
         Write-Host "`n=================================================================" -ForegroundColor Cyan
         Write-Host "  0. Exit" -ForegroundColor Red
@@ -374,6 +393,80 @@ function Start-UTCMInteractive {
                 Disconnect-MgGraph
                 Connect-UTCM
                 $context = Get-MgContext
+                Read-Host "`nPress Enter to continue"
+            }
+            "19" {
+                Get-UTCMTenantContext | Format-Table -AutoSize TenantId, DisplayName, Account, IsActive, ConnectedAt
+                Read-Host "`nPress Enter to continue"
+            }
+            "20" {
+                $tenantContexts = Get-UTCMTenantContext
+                if ($tenantContexts.Count -le 1) {
+                    Write-Host "`nOnly one tenant connected. Connect additional tenants first (option 21)." -ForegroundColor Yellow
+                } else {
+                    Write-Host "`nConnected Tenants:" -ForegroundColor Yellow
+                    for ($i = 0; $i -lt $tenantContexts.Count; $i++) {
+                        $t = $tenantContexts[$i]
+                        $marker = if ($t.IsActive) { " (active)" } else { "" }
+                        Write-Host "  $($i + 1). $($t.DisplayName) - $($t.TenantId)$marker" -ForegroundColor $(if ($t.IsActive) { "Green" } else { "White" })
+                    }
+                    $selection = Read-Host "`nSelect tenant (1-$($tenantContexts.Count))"
+                    if ($selection -match '^\d+$' -and [int]$selection -ge 1 -and [int]$selection -le $tenantContexts.Count) {
+                        $selected = $tenantContexts[[int]$selection - 1]
+                        Set-UTCMTenantContext -TenantId $selected.TenantId
+                        $context = Get-MgContext
+                    } else {
+                        Write-Host "`nInvalid selection." -ForegroundColor Red
+                    }
+                }
+                Read-Host "`nPress Enter to continue"
+            }
+            "21" {
+                $tenantId = Read-Host "`nEnter Azure AD Tenant ID for the new tenant"
+                if ($tenantId) {
+                    $displayName = Read-Host "Enter a friendly name (optional)"
+                    if ($displayName) {
+                        Connect-UTCM -TenantId $tenantId -DisplayName $displayName
+                    } else {
+                        Connect-UTCM -TenantId $tenantId
+                    }
+                    $context = Get-MgContext
+                }
+                Read-Host "`nPress Enter to continue"
+            }
+            "22" {
+                $tenantContexts = Get-UTCMTenantContext
+                if ($tenantContexts.Count -lt 2) {
+                    Write-Host "`nNeed at least 2 connected tenants for cross-tenant comparison." -ForegroundColor Yellow
+                    Write-Host "Use option 21 to connect additional tenants." -ForegroundColor Gray
+                } else {
+                    Write-Host "`nSelect SOURCE tenant:" -ForegroundColor Yellow
+                    for ($i = 0; $i -lt $tenantContexts.Count; $i++) {
+                        Write-Host "  $($i + 1). $($tenantContexts[$i].DisplayName)" -ForegroundColor White
+                    }
+                    $srcSel = Read-Host "Source tenant (1-$($tenantContexts.Count))"
+                    $srcTenant = $tenantContexts[[int]$srcSel - 1]
+                    $srcSnapshotId = Read-Host "Enter source snapshot ID"
+
+                    Write-Host "`nSelect TARGET tenant:" -ForegroundColor Yellow
+                    for ($i = 0; $i -lt $tenantContexts.Count; $i++) {
+                        Write-Host "  $($i + 1). $($tenantContexts[$i].DisplayName)" -ForegroundColor White
+                    }
+                    $tgtSel = Read-Host "Target tenant (1-$($tenantContexts.Count))"
+                    $tgtTenant = $tenantContexts[[int]$tgtSel - 1]
+                    $tgtSnapshotId = Read-Host "Enter target snapshot ID"
+
+                    if ($srcSnapshotId -and $tgtSnapshotId) {
+                        $diffs = Compare-UTCMSnapshot `
+                            -SourceTenantId $srcTenant.TenantId `
+                            -SourceSnapshotId $srcSnapshotId `
+                            -TargetTenantId $tgtTenant.TenantId `
+                            -TargetSnapshotId $tgtSnapshotId
+                        if ($diffs) {
+                            $diffs | Format-Table -AutoSize Status, ResourceType, ResourceName
+                        }
+                    }
+                }
                 Read-Host "`nPress Enter to continue"
             }
             "0" {

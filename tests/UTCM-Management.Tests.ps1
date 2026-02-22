@@ -522,7 +522,125 @@ Describe 'Get-UTCMDrift' {
     }
 }
 
+Describe 'Multi-Tenant Context Management' {
+    BeforeEach {
+        # Reset module-scope tenant state before each test
+        & (Get-Module M365Watcher) {
+            $script:UTCMTenants = @{}
+            $script:ActiveTenantId = $null
+        }
+    }
+
+    Context 'Connect-UTCM multi-tenant' {
+        It 'Registers the connected tenant in the tenant context' {
+            Mock -ModuleName M365Watcher Connect-MgGraph { }
+            Mock -ModuleName M365Watcher Get-MgContext {
+                return @{ TenantId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'; Account = 'user@test.com' }
+            }
+
+            Connect-UTCM -TenantId 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+
+            $tenants = Get-UTCMTenantContext
+            @($tenants).Count | Should -Be 1
+            $tenants[0].TenantId | Should -Be 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+        }
+
+        It 'Sets the first connected tenant as active by default' {
+            Mock -ModuleName M365Watcher Connect-MgGraph { }
+            Mock -ModuleName M365Watcher Get-MgContext {
+                return @{ TenantId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'; Account = 'user@test.com' }
+            }
+
+            Connect-UTCM -TenantId 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+
+            $tenants = Get-UTCMTenantContext
+            $tenants[0].IsActive | Should -BeTrue
+        }
+
+        It 'Does not change active tenant when connecting a second tenant without -SetActive' {
+            Mock -ModuleName M365Watcher Connect-MgGraph { }
+
+            # Connect first tenant
+            Mock -ModuleName M365Watcher Get-MgContext {
+                return @{ TenantId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'; Account = 'user@test.com' }
+            }
+            Connect-UTCM -TenantId 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+
+            # Connect second tenant
+            Mock -ModuleName M365Watcher Get-MgContext {
+                return @{ TenantId = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'; Account = 'user@test.com' }
+            }
+            Connect-UTCM -TenantId 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+
+            $tenants = Get-UTCMTenantContext
+            @($tenants).Count | Should -Be 2
+            ($tenants | Where-Object { $_.IsActive }).TenantId | Should -Be 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+        }
+
+        It 'Switches active tenant when -SetActive is specified' {
+            Mock -ModuleName M365Watcher Connect-MgGraph { }
+
+            Mock -ModuleName M365Watcher Get-MgContext {
+                return @{ TenantId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'; Account = 'user@test.com' }
+            }
+            Connect-UTCM -TenantId 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+
+            Mock -ModuleName M365Watcher Get-MgContext {
+                return @{ TenantId = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'; Account = 'user@test.com' }
+            }
+            Connect-UTCM -TenantId 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' -SetActive
+
+            $tenants = Get-UTCMTenantContext
+            ($tenants | Where-Object { $_.IsActive }).TenantId | Should -Be 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+        }
+    }
+
+    Context 'Get-UTCMTenantContext' {
+        It 'Returns empty when no tenants connected' {
+            $tenants = Get-UTCMTenantContext
+            @($tenants).Count | Should -Be 0
+        }
+
+        It 'Returns all connected tenants with correct active marker' {
+            # Register tenants directly via internal functions
+            InModuleScope M365Watcher {
+                Register-UTCMTenantConnection -TenantId 'tenant-111' -Account 'a@a.com' -DisplayName 'Tenant One'
+                Register-UTCMTenantConnection -TenantId 'tenant-222' -Account 'b@b.com' -DisplayName 'Tenant Two'
+                Set-UTCMActiveTenantInternal -TenantId 'tenant-222'
+            }
+
+            $tenants = Get-UTCMTenantContext
+            @($tenants).Count | Should -Be 2
+            ($tenants | Where-Object { $_.TenantId -eq 'tenant-111' }).IsActive | Should -BeFalse
+            ($tenants | Where-Object { $_.TenantId -eq 'tenant-222' }).IsActive | Should -BeTrue
+        }
+    }
+
+    Context 'Set-UTCMTenantContext' {
+        It 'Changes the active tenant' {
+            InModuleScope M365Watcher {
+                Register-UTCMTenantConnection -TenantId 'tenant-111' -Account 'a@a.com'
+                Register-UTCMTenantConnection -TenantId 'tenant-222' -Account 'b@b.com'
+                Set-UTCMActiveTenantInternal -TenantId 'tenant-111'
+            }
+
+            Set-UTCMTenantContext -TenantId 'tenant-222'
+
+            $tenants = Get-UTCMTenantContext
+            ($tenants | Where-Object { $_.IsActive }).TenantId | Should -Be 'tenant-222'
+        }
+
+        It 'Throws for unregistered tenant IDs' {
+            { Set-UTCMTenantContext -TenantId 'nonexistent-tenant' } | Should -Throw '*not registered*'
+        }
+    }
+}
+
 Describe 'Module constants' {
+    It 'Exports 21 functions' {
+        (Get-Command -Module M365Watcher).Count | Should -Be 21
+    }
+
     It 'Has correct UTCM App ID' {
         $appId = & (Get-Module M365Watcher) { $script:UTCMAppId }
         $appId | Should -Be '03b07b79-c5bc-4b5e-9bfa-13acf4a99998'

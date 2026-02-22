@@ -130,6 +130,37 @@ export interface DashboardSummary {
   }>;
 }
 
+// ===== Tenants =====
+export interface TenantInfo {
+  id: string;
+  displayName: string;
+  tenantId: string;
+  isDefault: boolean;
+  color?: string;
+}
+
+export interface TenantRegistration extends TenantInfo {
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateTenantInput {
+  displayName: string;
+  tenantId: string;
+  color?: string;
+}
+
+export interface UpdateTenantInput {
+  displayName?: string;
+  color?: string;
+}
+
+export interface TenantTestResult {
+  success: boolean;
+  message: string;
+  organization?: string;
+}
+
 // ===== API Error =====
 export interface ApiErrorResponse {
   error: {

@@ -2,15 +2,17 @@
 
 ## Overview
 
-This PowerShell module provides comprehensive management of Microsoft's Unified Tenant Configuration Management (UTCM) APIs through Microsoft Graph. UTCM enables automated monitoring of Microsoft 365 tenant configuration settings and detection of configuration drift across workloads. The module is located at `src/M365Watcher/` and exports 18 public functions covering the full UTCM lifecycle.
+This PowerShell module provides comprehensive management of Microsoft's Unified Tenant Configuration Management (UTCM) APIs through Microsoft Graph. UTCM enables automated monitoring of Microsoft 365 tenant configuration settings and detection of configuration drift across workloads. The module is located at `src/M365Watcher/` and exports 21 public functions covering the full UTCM lifecycle, including multi-tenant context management.
 
 > **⚠️ Important:** UTCM is currently in **preview** and may not be available in all Microsoft 365 tenants. Use `Test-UTCMAvailability` to check if UTCM is enabled in your tenant before proceeding.
 
 ## Features
 
+- ✅ **Multi-Tenant Support** - Manage multiple M365 tenants from a single dashboard instance using a shared app registration; register, test, and switch tenants at runtime
 - ✅ **Web Dashboard** - React-based UI for visual monitoring, snapshot/monitor management, drift analysis with JSON diffs; supports app credentials and OAuth user login (MSAL Browser redirect flow, PKCE)
-- ✅ **Interactive Menu Interface** - User-friendly PowerShell menu for all operations
+- ✅ **Interactive Menu Interface** - User-friendly PowerShell menu for all operations, including multi-tenant context switching (options 19–22)
 - ✅ **Complete UTCM Management** - All snapshot, monitor, and drift operations
+- ✅ **Cross-Tenant Snapshot Comparison** - Compare configuration snapshots across tenants using `Compare-UTCMSnapshot`
 - ✅ **Resilient API Layer** - Automatic retry with exponential backoff (429/503/504), pagination, structured error parsing
 - ✅ **Resource Type Validation** - 107 verified types validated before API calls
 - ✅ **Safe Operations** - `-WhatIf`/`-Confirm` support on all destructive operations
@@ -56,8 +58,11 @@ The project includes a full web dashboard for visual UTCM monitoring. It provide
 - **Drifts** - Filter by monitor/status, detail view with side-by-side JSON diff of property changes
 - **Monitoring Results** - Timeline of monitoring runs
 - **Resource Types** - Searchable reference of all 107 types
+- **Tenants** (`/tenants`) - Register new tenants, edit credentials, test connectivity, and remove tenants from the registry
 - **Login** - Sign in with Microsoft (OAuth PKCE) or continue with app credentials, shown based on `AUTH_MODE`
 - **Settings** - View active auth mode, signed-in user info, and toggle between user and app modes (in `dual` configuration)
+
+**Tenant selector** — a dropdown in the sidebar lets you switch the active tenant at any time. All subsequent API calls are scoped to the selected tenant. The dashboard resolves the target tenant from the `X-Tenant-Id` request header (set by the selector), a `tenantId` query parameter, or the configured default.
 
 ### Dashboard Quick Start
 
@@ -81,6 +86,15 @@ The minimum required variables depend on `AUTH_MODE`:
 - `user` — OAuth PKCE only (users sign in with Microsoft, no client secret needed)
 - `dual` — Both modes available; users can switch between them on the Settings page (default)
 
+**Additional multi-tenant environment variables:**
+
+| Variable | Description | Default |
+|---|---|---|
+| `TENANT_STORE_PATH` | Path to the JSON file used as the tenant registry | `dashboard/data/tenants.json` |
+| `ALLOWED_TENANT_IDS` | Comma-separated list of additional tenant IDs whose user tokens are accepted (B2B guests) | _(empty)_ |
+
+On first startup the server auto-migrates `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, and `AZURE_CLIENT_SECRET` into `tenants.json` as the default tenant. Existing single-tenant deployments require no manual changes.
+
 **Option A: Docker (recommended for hosting)**
 ```bash
 docker compose up -d --build
@@ -95,11 +109,15 @@ npm run dev
 # Backend on http://localhost:3001, Frontend on http://localhost:5173
 ```
 
-The Azure App Registration must have `ConfigurationMonitoring.ReadWrite.All` (Application permission, admin consented). Graph API calls always use client credentials (application permissions) even when a user is signed in via OAuth, since the UTCM beta endpoints require application permissions. For user OAuth mode, the registration needs a **SPA platform** redirect URI configured for `http://localhost:5173` (development) or your production origin (e.g. `https://192.168.178.32`). No additional delegated permissions are required — the user's OAuth token is used only for dashboard session authentication. The server validates each token by verifying its RS256 signature using Microsoft's Entra ID JWKS endpoint and checking the issuer, audience (app client ID), expiry, and tenant ID claims. See [dashboard/.env.example](dashboard/.env.example) for configuration.
+The Azure App Registration must have `ConfigurationMonitoring.ReadWrite.All` (Application permission, admin consented) and must be configured as a **multi-tenant app** (supported account types: "Accounts in any organizational directory") to manage multiple tenants from a single registration. Each additional tenant's admin must grant admin consent to this app registration for the required application permissions. Graph API calls always use client credentials (application permissions) even when a user is signed in via OAuth, since the UTCM beta endpoints require application permissions.
+
+For user OAuth mode, the registration needs a **SPA platform** redirect URI configured for `http://localhost:5173` (development) or your production origin (e.g. `https://192.168.178.32`). No additional delegated permissions are required — the user's OAuth token is used only for dashboard session authentication. The server validates each token by verifying its RS256 signature using the common JWKS endpoint and checking the issuer, audience (app client ID), expiry, and tenant ID claims against the allowlist. See [dashboard/.env.example](dashboard/.env.example) for configuration.
 
 For self-hosting on Proxmox, see [dashboard/PROXMOX-SETUP.md](dashboard/PROXMOX-SETUP.md).
 
 ## Available Functions
+
+The module exports 21 public functions. All functions follow the `Verb-UTCM*` naming convention.
 
 ### Connection & Setup
 - `Connect-UTCM` - Connect to Microsoft Graph with UTCM permissions
@@ -111,6 +129,7 @@ For self-hosting on Proxmox, see [dashboard/PROXMOX-SETUP.md](dashboard/PROXMOX-
 - `New-UTCMSnapshot` - Create a configuration snapshot
 - `Get-UTCMSnapshot` - Get snapshots (all or specific)
 - `Remove-UTCMSnapshot` - Delete a snapshot
+- `Compare-UTCMSnapshot` - Compare two snapshots (including across tenants) and output a property-level diff
 
 ### Monitor Management
 - `New-UTCMMonitor` - Create a configuration monitor
@@ -126,9 +145,13 @@ For self-hosting on Proxmox, see [dashboard/PROXMOX-SETUP.md](dashboard/PROXMOX-
 - `Get-UTCMMonitoringResult` - Get monitoring results
 - `Get-UTCMSummary` - Display UTCM configuration summary
 
+### Multi-Tenant Management
+- `Get-UTCMTenantContext` - Get the currently active tenant context (tenant ID, display name, and credentials)
+- `Set-UTCMTenantContext` - Switch the active tenant context; subsequent UTCM calls target this tenant
+
 ### Utilities
 - `Get-UTCMResourceTypes` - Show available resource types
-- `Start-UTCMInteractive` - Launch interactive menu interface
+- `Start-UTCMInteractive` - Launch interactive menu interface (includes multi-tenant options 19–22)
 - `Start-UTCMExample` - Run example workflow
 
 ## Installation
@@ -882,7 +905,7 @@ The GitHub Actions pipeline runs automatically on push and PR:
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
-**Current version: 2.0.0** - Refactored into proper PowerShell module (`src/M365Watcher/`), module manifest for PSGallery readiness, 18 public functions exported
+**Current version: 2.0.0** (Unreleased changes pending) - Refactored into proper PowerShell module (`src/M365Watcher/`), module manifest for PSGallery readiness, 21 public functions exported (18 core + 3 multi-tenant)
 
 ## License
 

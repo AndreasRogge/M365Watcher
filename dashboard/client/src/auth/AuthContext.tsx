@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     import("@azure/msal-browser").then(async ({ PublicClientApplication }) => {
       try {
         const { buildMsalConfig } = await import("./msalConfig");
-        const msalConfig = buildMsalConfig(config.clientId, config.tenantId);
+        const msalConfig = buildMsalConfig(config.clientId);
         const msal = new PublicClientApplication(msalConfig);
         await msal.initialize();
 
@@ -185,6 +185,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await msal.acquireTokenSilent({
         scopes: graphScopes,
         account,
+        // Use the account's tenant-specific authority for token refresh.
+        // This ensures tokens are refreshed against the correct tenant
+        // when the user authenticated as a guest in a foreign tenant.
+        authority: account.tenantId
+          ? `https://login.microsoftonline.com/${account.tenantId}`
+          : undefined,
       });
       return result.idToken;
     } catch (err) {
