@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 - **Dashboard OAuth "invalid signature" error** — the frontend was sending the Microsoft Graph access token to the backend for authentication, but Graph access tokens use a proprietary nonce-based signature that standard JWT libraries cannot verify. The frontend now sends the Entra ID token (a standard JWT with `aud: clientId`) instead. The backend JWKS client also now supports both v1.0 and v2.0 Entra ID token formats by selecting the correct JWKS endpoint based on the token's issuer claim.
+- **Dashboard OAuth authentication** now correctly validates user tokens from the Microsoft identity platform. The JWT middleware previously rejected valid user tokens because it only accepted the Graph API endpoint (`https://graph.microsoft.com`) as the audience claim. User tokens have the dashboard app's client ID as their audience instead. Now the middleware accepts both audiences to support both app credentials (Graph API endpoint) and user authentication (app client ID) flows.
 
 ### Changed
 - Extracted the 107 verified UTCM resource types from three previously duplicated locations into a single shared JSON catalog at `data/resourceTypes.json` (repo root). This file is now the single source of truth for all resource type data across the PowerShell module and the web dashboard.
