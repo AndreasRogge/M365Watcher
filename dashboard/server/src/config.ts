@@ -50,10 +50,11 @@ export const config = {
   },
   server: {
     port: parseInt(process.env.PORT || "3001", 10),
-    allowedOrigins: (process.env.CORS_ORIGIN || "http://localhost:5173")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean),
+    // If CORS_ORIGIN is set, enforce it. If not, null means "allow all" —
+    // safe default for Docker where the frontend is served by this same server.
+    allowedOrigins: process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(",").map((s) => s.trim()).filter(Boolean)
+      : null,
   },
   graph: {
     baseUrl: "https://graph.microsoft.com",

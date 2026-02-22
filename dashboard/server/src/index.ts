@@ -26,12 +26,24 @@ const app = express();
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow same-origin requests (origin is undefined for server-to-server)
-      if (!origin || config.server.allowedOrigins.includes(origin)) {
+      // No Origin header (same-origin, server-to-server, curl) — always allow
+      if (!origin) {
         callback(null, true);
-      } else {
-        callback(new Error(`CORS: origin '${origin}' is not allowed`));
+        return;
       }
+      // If CORS_ORIGIN is not configured, allow all origins.
+      // In production Docker the frontend is served by this same Express server,
+      // so CORS restrictions are not needed unless explicitly configured.
+      if (!config.server.allowedOrigins) {
+        callback(null, true);
+        return;
+      }
+      // Enforce the configured allowlist
+      if (config.server.allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error(`CORS: origin '${origin}' is not allowed`));
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Tenant-Id"],
