@@ -58,10 +58,9 @@ router.post("/", async (req, res, next) => {
         res.status(409).json({ error: { code: "Conflict", message: err.message } });
         return;
       }
-      // Validation errors from tenantStore (GUID format, allowlist, displayName, color)
+      // Validation errors from tenantStore (GUID format, displayName, color)
       if (
         err.message.includes("Invalid tenant ID") ||
-        err.message.includes("not in the allowed tenant list") ||
         err.message.includes("Display name") ||
         err.message.includes("Invalid color")
       ) {

@@ -79,11 +79,6 @@ export async function createTenant(input: CreateTenantInput): Promise<TenantRegi
     throw new Error("Invalid tenant ID format. Must be a valid GUID.");
   }
 
-  // Only allow tenants that are in the server's allowlist
-  if (!config.azure.allowedTenantIds.has(input.tenantId)) {
-    throw new Error("This tenant ID is not in the allowed tenant list. Add it to ALLOWED_TENANT_IDS.");
-  }
-
   // Validate displayName length
   if (!input.displayName || input.displayName.trim().length === 0) {
     throw new Error("Display name is required.");
