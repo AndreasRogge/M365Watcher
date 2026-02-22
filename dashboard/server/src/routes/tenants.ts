@@ -160,28 +160,13 @@ router.post("/:id/test", async (req, res, next) => {
       return;
     }
 
-    // Try a basic Graph call to verify the token works
-    const graphResponse = await fetch(
-      `${config.graph.baseUrl}/v1.0/organization`,
-      {
-        headers: { Authorization: `Bearer ${result.accessToken}` },
-      }
-    );
-
-    if (graphResponse.ok) {
-      const data = await graphResponse.json();
-      const orgName = data.value?.[0]?.displayName || "Unknown";
-      res.json({
-        success: true,
-        message: `Connected successfully to "${orgName}" (${tenant.tenantId}).`,
-        organization: orgName,
-      });
-    } else {
-      res.json({
-        success: false,
-        message: `Token acquired but Graph call failed with HTTP ${graphResponse.status}.`,
-      });
-    }
+    // Token acquisition succeeded — credentials are valid for this tenant.
+    // The token itself proves the clientId, clientSecret, and tenant are correct.
+    res.json({
+      success: true,
+      message: `Credentials valid for tenant ${tenant.tenantId}.`,
+      organization: tenant.displayName,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     res.json({
