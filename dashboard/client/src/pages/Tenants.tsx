@@ -287,8 +287,10 @@ export function Tenants() {
                       ) : (
                         <XCircle className="h-4 w-4 text-red-400" />
                       )}
-                      <span className={`text-xs ${testResults[tenant.id].success ? "text-emerald-400" : "text-red-400"}`}>
-                        {testResults[tenant.id].organization || (testResults[tenant.id].success ? "OK" : "Failed")}
+                      <span className={`text-xs max-w-xs truncate ${testResults[tenant.id].success ? "text-emerald-400" : "text-red-400"}`} title={testResults[tenant.id].message}>
+                        {testResults[tenant.id].success
+                          ? (testResults[tenant.id].organization || "OK")
+                          : (testResults[tenant.id].message || "Failed")}
                       </span>
                     </div>
                   )}

@@ -3,9 +3,11 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
   type ReactNode,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import api from "../api/client";
 import type { TenantInfo } from "../types";
 
 const TENANT_STORAGE_KEY = "m365watcher_active_tenant";
@@ -36,6 +38,19 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     () => sessionStorage.getItem(TENANT_STORAGE_KEY)
   );
   const queryClient = useQueryClient();
+
+  // Fetch tenants from the authenticated API on mount
+  useEffect(() => {
+    api.get("/tenants")
+      .then(({ data }) => {
+        if (data.value && Array.isArray(data.value)) {
+          setTenantsState(data.value);
+        }
+      })
+      .catch(() => {
+        // Silently fail — tenants will load when the Tenants page is visited
+      });
+  }, []);
 
   const activeTenant =
     tenants.find((t) => t.id === activeTenantId) ??
