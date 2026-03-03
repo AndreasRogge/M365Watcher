@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import jwksRsa from "jwks-rsa";
-import { config } from "../config.js";
+import { config, isTenantAllowed } from "../config.js";
 import { requestContext, RequestAuthContext } from "./requestContext.js";
 
 /**
@@ -65,7 +65,9 @@ async function validateBearerToken(token: string): Promise<jwt.JwtPayload> {
 
   // Step 2: Check tenant ID against allowlist BEFORE any cryptographic work.
   // This prevents fetching signing keys for tenants we would never accept.
-  if (!tokenTid || !config.azure.allowedTenantIds.has(tokenTid)) {
+  // The check is async because it queries the runtime tenant store in addition
+  // to the static env-var allowlist.
+  if (!tokenTid || !(await isTenantAllowed(tokenTid))) {
     throw new Error("The provided token is invalid or has expired.");
   }
 
@@ -92,7 +94,7 @@ async function validateBearerToken(token: string): Promise<jwt.JwtPayload> {
 
   // Step 6: Defense-in-depth — re-confirm tid on the verified payload.
   const verifiedTid = verifiedPayload.tid as string | undefined;
-  if (!verifiedTid || !config.azure.allowedTenantIds.has(verifiedTid)) {
+  if (!verifiedTid || !(await isTenantAllowed(verifiedTid))) {
     throw new Error("The provided token is invalid or has expired.");
   }
 

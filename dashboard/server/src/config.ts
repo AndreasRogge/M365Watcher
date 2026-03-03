@@ -31,14 +31,30 @@ const clientSecret: string | undefined = authMode === "user"
 
 // Allowed tenant IDs for multi-tenant user authentication.
 // The home tenant is always allowed. Additional tenants are loaded from
-// ALLOWED_TENANT_IDS (comma-separated). These are the tenants whose user
-// tokens will be accepted by the auth middleware.
+// ALLOWED_TENANT_IDS (comma-separated). These form the base set of tenants
+// whose user tokens will be accepted by the auth middleware.
+// Tenants registered at runtime via the tenant store are also accepted.
 const homeTenantId = requireEnv("AZURE_TENANT_ID");
 const extraTenantIds = (process.env.ALLOWED_TENANT_IDS || "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
-const allowedTenantIds = new Set<string>([homeTenantId, ...extraTenantIds]);
+const baseAllowedTenantIds = new Set<string>([homeTenantId, ...extraTenantIds]);
+
+/**
+ * Check if a tenant ID is allowed for authentication.
+ * Combines the static env-var allowlist with tenants registered in the store at runtime.
+ */
+export async function isTenantAllowed(tenantId: string): Promise<boolean> {
+  if (baseAllowedTenantIds.has(tenantId)) {
+    return true;
+  }
+  // Dynamically check the tenant store for runtime-registered tenants.
+  // Lazy import to avoid circular dependency (tenantStore imports config).
+  const { listTenants } = await import("./services/tenantStore.js");
+  const registeredTenants = await listTenants();
+  return registeredTenants.some((t) => t.tenantId === tenantId);
+}
 
 export const config = {
   authMode,
@@ -46,12 +62,12 @@ export const config = {
     tenantId: homeTenantId,
     clientId: requireEnv("AZURE_CLIENT_ID"),
     clientSecret,
-    allowedTenantIds,
+    baseAllowedTenantIds,
   },
   server: {
     port: parseInt(process.env.PORT || "3001", 10),
-    // If CORS_ORIGIN is set, enforce it. If not, null means "allow all" —
-    // safe default for Docker where the frontend is served by this same server.
+    // If CORS_ORIGIN is set, enforce it. If not, null means "same-origin only" —
+    // cross-origin requests are rejected unless CORS_ORIGIN is explicitly set.
     allowedOrigins: process.env.CORS_ORIGIN
       ? process.env.CORS_ORIGIN.split(",").map((s) => s.trim()).filter(Boolean)
       : null,

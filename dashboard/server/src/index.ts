@@ -31,11 +31,11 @@ app.use(
         callback(null, true);
         return;
       }
-      // If CORS_ORIGIN is not configured, allow all origins.
+      // If CORS_ORIGIN is not configured, reject cross-origin requests.
       // In production Docker the frontend is served by this same Express server,
-      // so CORS restrictions are not needed unless explicitly configured.
+      // so same-origin requests (no Origin header) are already allowed above.
       if (!config.server.allowedOrigins) {
-        callback(null, true);
+        callback(new Error(`CORS: cross-origin request from '${origin}' blocked. Set CORS_ORIGIN to allow it.`));
         return;
       }
       // Enforce the configured allowlist
@@ -52,8 +52,11 @@ app.use(
 );
 app.use(express.json());
 
-// Auth config endpoint (public, before auth middleware)
+// Public endpoints (before auth middleware)
 app.use("/api/auth", authRoutes);
+app.get("/api/health", (_req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
 
 // Auth middleware for all other API routes
 app.use("/api", authMiddleware);
@@ -71,11 +74,6 @@ app.use("/api/drifts", driftRoutes);
 app.use("/api/monitoring-results", monitoringResultRoutes);
 app.use("/api/resource-types", resourceTypeRoutes);
 app.use("/api/summary", summaryRoutes);
-
-// Health check
-app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
 
 // In production (Docker), serve the built React frontend
 const publicDir = resolve(__dirname, "../public");
@@ -103,7 +101,7 @@ async function start() {
   ║                                              ║
   ║   Home Tenant: ${config.azure.tenantId.substring(0, 8)}...    ║
   ║   Client: ${config.azure.clientId.substring(0, 8)}...         ║
-  ║   Allowed Tenants: ${config.azure.allowedTenantIds.size}                        ║
+  ║   Allowed Tenants: ${config.azure.baseAllowedTenantIds.size} (base) + store      ║
   ╚══════════════════════════════════════════════╝
     `);
   });

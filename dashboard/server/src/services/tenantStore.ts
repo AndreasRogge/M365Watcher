@@ -42,8 +42,13 @@ async function readStore(): Promise<TenantRegistration[]> {
     return [];
   }
   const raw = await readFile(path, "utf-8");
-  const data = JSON.parse(raw);
-  return Array.isArray(data) ? data : [];
+  try {
+    const data = JSON.parse(raw);
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    console.error(`[TenantStore] Failed to parse ${path}: ${err instanceof Error ? err.message : err}`);
+    return [];
+  }
 }
 
 async function writeStore(tenants: TenantRegistration[]): Promise<void> {
