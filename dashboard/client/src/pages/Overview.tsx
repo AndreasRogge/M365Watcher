@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   Activity,
   ArrowRight,
+  ArrowUpRight,
 } from "lucide-react";
 import { useSummary } from "../api/summary";
 import { StatusBadge } from "../components/shared/StatusBadge";
@@ -32,6 +33,7 @@ export function Overview() {
       icon: Camera,
       color: "text-blue-400",
       bgColor: "bg-blue-500/10",
+      iconGlow: "shadow-blue-500/20",
       to: "/snapshots",
     },
     {
@@ -41,6 +43,7 @@ export function Overview() {
       icon: Monitor,
       color: "text-emerald-400",
       bgColor: "bg-emerald-500/10",
+      iconGlow: "shadow-emerald-500/20",
       to: "/monitors",
     },
     {
@@ -50,6 +53,7 @@ export function Overview() {
       icon: AlertTriangle,
       color: summary.counts.activeDrifts > 0 ? "text-red-400" : "text-emerald-400",
       bgColor: summary.counts.activeDrifts > 0 ? "bg-red-500/10" : "bg-emerald-500/10",
+      iconGlow: summary.counts.activeDrifts > 0 ? "shadow-red-500/20" : "shadow-emerald-500/20",
       to: "/drifts",
     },
     {
@@ -59,85 +63,100 @@ export function Overview() {
         : "N/A",
       sub: summary.lastMonitoringRun?.status || "no runs yet",
       icon: Activity,
-      color: "text-purple-400",
-      bgColor: "bg-purple-500/10",
+      color: "text-violet-400",
+      bgColor: "bg-violet-500/10",
+      iconGlow: "shadow-violet-500/20",
       to: "/monitoring-results",
     },
   ];
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-100">Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-400">
-          {activeTenant ? `${activeTenant.displayName} — ` : ""}
+      <div className="mb-8 animate-in animate-in-1">
+        <h1 className="text-2xl font-bold tracking-tight text-gray-100">
+          Dashboard
+        </h1>
+        <p className="mt-1.5 text-sm text-gray-500">
+          {activeTenant ? (
+            <>
+              <span className="text-gray-400">{activeTenant.displayName}</span>
+              {" \u2014 "}
+            </>
+          ) : ""}
           Microsoft 365 configuration monitoring overview
         </p>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-4 mb-8">
-        {cards.map((card) => (
+        {cards.map((card, i) => (
           <Link
             key={card.label}
             to={card.to}
-            className="group rounded-xl border border-gray-800 bg-gray-900/50 p-5 hover:border-gray-700 hover:bg-gray-900 transition-all"
+            className={`card-shine card-surface group rounded-xl p-5 transition-all hover:translate-y-[-1px] animate-in animate-in-${i + 1}`}
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className={`rounded-lg p-2 ${card.bgColor}`}>
-                <card.icon className={`h-5 w-5 ${card.color}`} />
+            <div className="relative z-10 flex items-center justify-between mb-4">
+              <div className={`rounded-lg p-2.5 ${card.bgColor} shadow-sm ${card.iconGlow}`}>
+                <card.icon className={`h-[18px] w-[18px] ${card.color}`} />
               </div>
-              <ArrowRight className="h-4 w-4 text-gray-700 group-hover:text-gray-500 transition-colors" />
+              <ArrowRight className="h-3.5 w-3.5 text-gray-700 transition-all group-hover:text-gray-400 group-hover:translate-x-0.5" />
             </div>
-            <div className="text-2xl font-bold text-gray-100">
-              {card.value}
-            </div>
-            <div className="mt-0.5 text-xs text-gray-500">{card.sub}</div>
-            <div className="mt-1 text-sm font-medium text-gray-400">
-              {card.label}
+            <div className="relative z-10">
+              <div className="text-[28px] font-bold leading-none tracking-tight text-gray-100">
+                {card.value}
+              </div>
+              <div className="mt-1.5 text-[11px] font-medium text-gray-600">
+                {card.sub}
+              </div>
+              <div className="mt-1 text-[13px] font-semibold text-gray-400">
+                {card.label}
+              </div>
             </div>
           </Link>
         ))}
       </div>
 
       {/* Recent Drifts */}
-      <div className="rounded-xl border border-gray-800 bg-gray-900/50">
-        <div className="flex items-center justify-between border-b border-gray-800 px-6 py-4">
-          <h2 className="text-sm font-semibold text-gray-200">
+      <div className="card-surface rounded-xl animate-in animate-in-5">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+          <h2 className="text-[13px] font-semibold text-gray-200">
             Recent Drifts
           </h2>
           <Link
             to="/drifts"
-            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+            className="inline-flex items-center gap-1 text-xs font-medium text-blue-400 hover:text-blue-300"
           >
             View all
+            <ArrowUpRight className="h-3 w-3" />
           </Link>
         </div>
         {summary.recentDrifts.length === 0 ? (
-          <div className="px-6 py-8 text-center text-sm text-gray-500">
-            No drifts detected yet. Your configuration is clean!
+          <div className="px-6 py-10 text-center">
+            <p className="text-sm text-gray-500">
+              No drifts detected yet. Your configuration is clean!
+            </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-800">
+          <div className="divide-y divide-white/[0.04]">
             {summary.recentDrifts.map((drift) => (
               <Link
                 key={drift.id}
                 to={`/drifts/${drift.id}`}
-                className="flex items-center gap-4 px-6 py-3 hover:bg-gray-800/30 transition-colors"
+                className="flex items-center gap-4 px-6 py-3.5 hover:bg-white/[0.02] transition-colors"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-200 truncate">
+                    <span className="text-[13px] font-medium text-gray-200 truncate">
                       {getResourceShortName(drift.resourceType)}
                     </span>
                     <StatusBadge status={drift.changeType} />
                     <StatusBadge status={drift.status} />
                   </div>
-                  <div className="mt-0.5 text-xs text-gray-500">
+                  <div className="mt-0.5 text-xs text-gray-600">
                     {getWorkloadFromType(drift.resourceType)}
                   </div>
                 </div>
-                <span className="text-xs text-gray-500 whitespace-nowrap">
+                <span className="text-[11px] font-medium text-gray-600 whitespace-nowrap tabular-nums">
                   {formatRelativeTime(drift.detectedDateTime)}
                 </span>
               </Link>
@@ -148,26 +167,27 @@ export function Overview() {
 
       {/* Monitor Status */}
       {summary.monitors.length > 0 && (
-        <div className="mt-6 rounded-xl border border-gray-800 bg-gray-900/50">
-          <div className="flex items-center justify-between border-b border-gray-800 px-6 py-4">
-            <h2 className="text-sm font-semibold text-gray-200">
+        <div className="mt-5 card-surface rounded-xl animate-in animate-in-5">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+            <h2 className="text-[13px] font-semibold text-gray-200">
               Monitor Status
             </h2>
             <Link
               to="/monitors"
-              className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+              className="inline-flex items-center gap-1 text-xs font-medium text-blue-400 hover:text-blue-300"
             >
               Manage monitors
+              <ArrowUpRight className="h-3 w-3" />
             </Link>
           </div>
-          <div className="divide-y divide-gray-800">
+          <div className="divide-y divide-white/[0.04]">
             {summary.monitors.map((mon) => (
               <Link
                 key={mon.id}
                 to={`/monitors/${mon.id}`}
-                className="flex items-center justify-between px-6 py-3 hover:bg-gray-800/30 transition-colors"
+                className="flex items-center justify-between px-6 py-3.5 hover:bg-white/[0.02] transition-colors"
               >
-                <span className="text-sm text-gray-200">
+                <span className="text-[13px] font-medium text-gray-300">
                   {mon.displayName}
                 </span>
                 <div className="flex items-center gap-3">
@@ -177,13 +197,13 @@ export function Overview() {
                         status={mon.lastMonitoringResult.status}
                       />
                       {mon.lastMonitoringResult.driftDetected && (
-                        <span className="text-xs text-red-400">
+                        <span className="text-xs font-medium text-red-400">
                           {mon.lastMonitoringResult.driftCount} drift(s)
                         </span>
                       )}
                     </>
                   ) : (
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-600">
                       Awaiting first run
                     </span>
                   )}

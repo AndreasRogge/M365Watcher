@@ -31,8 +31,8 @@ export function ConfirmDialog({
 
   const btnClass =
     variant === "danger"
-      ? "bg-red-600 hover:bg-red-700 text-white"
-      : "bg-amber-600 hover:bg-amber-700 text-white";
+      ? "bg-red-600 hover:bg-red-500 text-white shadow-sm shadow-red-500/20"
+      : "bg-amber-600 hover:bg-amber-500 text-white shadow-sm shadow-amber-500/20";
 
   const handleConfirm = async () => {
     setError(null);
@@ -55,28 +55,28 @@ export function ConfirmDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black/60" onClick={handleClose} />
-      <div className="relative z-10 w-full max-w-md rounded-lg border border-gray-700 bg-gray-900 p-6 shadow-2xl">
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={handleClose} />
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-white/[0.08] bg-[var(--surface-2)] p-6 shadow-2xl shadow-black/50 animate-in animate-in-1">
         <button
           onClick={handleClose}
           disabled={isLoading}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-200 disabled:opacity-50"
+          className="absolute top-4 right-4 rounded-lg p-1.5 text-gray-500 hover:bg-white/[0.06] hover:text-gray-300 disabled:opacity-50"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
         </button>
 
         <div className="flex items-start gap-4">
-          <div className="rounded-full bg-red-500/10 p-2">
+          <div className="rounded-xl bg-red-500/10 p-2.5 ring-1 ring-red-500/20">
             <AlertTriangle className="h-5 w-5 text-red-400" />
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-100">{title}</h3>
-            <p className="mt-2 text-sm text-gray-400">{description}</p>
+          <div className="flex-1">
+            <h3 className="text-[15px] font-semibold text-gray-100">{title}</h3>
+            <p className="mt-2 text-[13px] leading-relaxed text-gray-400">{description}</p>
           </div>
         </div>
 
         {error && (
-          <div className="mt-4 rounded-md bg-red-500/10 border border-red-500/30 px-3 py-2 text-sm text-red-400">
+          <div className="mt-4 rounded-lg bg-red-500/8 border border-red-500/20 px-3.5 py-2.5 text-[13px] text-red-400">
             {error}
           </div>
         )}
@@ -85,14 +85,14 @@ export function ConfirmDialog({
           <button
             onClick={handleClose}
             disabled={isLoading}
-            className="rounded-md border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 transition-colors disabled:opacity-50"
+            className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 py-2.5 text-[13px] font-medium text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={handleConfirm}
             disabled={isLoading}
-            className={`rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${btnClass}`}
+            className={`rounded-lg px-4 py-2.5 text-[13px] font-semibold transition-all disabled:opacity-50 ${btnClass}`}
           >
             {isLoading ? "Processing..." : confirmLabel}
           </button>

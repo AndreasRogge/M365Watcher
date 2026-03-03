@@ -49,12 +49,10 @@ export function Tenants() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<Record<string, TenantTestResult>>({});
 
-  // Add form state
   const [newName, setNewName] = useState("");
   const [newTenantId, setNewTenantId] = useState("");
   const [newColor, setNewColor] = useState("blue");
 
-  // Edit form state
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("");
 
@@ -107,16 +105,16 @@ export function Tenants() {
 
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex items-center justify-between animate-in animate-in-1">
         <div>
-          <h1 className="text-2xl font-bold text-gray-100">Tenants</h1>
-          <p className="mt-1 text-sm text-gray-400">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-100">Tenants</h1>
+          <p className="mt-1.5 text-sm text-gray-500">
             Manage Microsoft 365 tenant registrations
           </p>
         </div>
         <button
           onClick={() => setShowAdd(true)}
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
+          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-[13px] font-semibold text-white shadow-sm shadow-blue-500/20 hover:bg-blue-500 transition-all"
         >
           <Plus className="h-4 w-4" />
           Add Tenant
@@ -125,11 +123,11 @@ export function Tenants() {
 
       {/* Add Tenant Form */}
       {showAdd && (
-        <div className="mb-6 rounded-xl border border-blue-500/30 bg-gray-900/80 p-6">
-          <h3 className="mb-4 text-sm font-semibold text-gray-200">Register New Tenant</h3>
+        <div className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/[0.03] p-6 animate-in animate-in-1">
+          <h3 className="mb-4 text-[13px] font-semibold text-gray-200">Register New Tenant</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-gray-400">
+              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-gray-500">
                 Display Name
               </label>
               <input
@@ -137,11 +135,11 @@ export function Tenants() {
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="e.g. Contoso Production"
-                className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-200 placeholder:text-gray-600 focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3.5 py-2.5 text-[13px] text-gray-200 placeholder:text-gray-600 focus:border-blue-500/50 focus:outline-none transition-colors"
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-gray-400">
+              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-gray-500">
                 Azure AD Tenant ID
               </label>
               <input
@@ -149,12 +147,12 @@ export function Tenants() {
                 value={newTenantId}
                 onChange={(e) => setNewTenantId(e.target.value)}
                 placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-200 placeholder:text-gray-600 focus:border-blue-500 focus:outline-none font-mono"
+                className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3.5 py-2.5 text-[13px] text-gray-200 placeholder:text-gray-600 focus:border-blue-500/50 focus:outline-none font-mono transition-colors"
               />
             </div>
           </div>
           <div className="mt-4">
-            <label className="mb-1.5 block text-xs font-medium text-gray-400">Color</label>
+            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-gray-500">Color</label>
             <div className="flex gap-2">
               {COLORS.map((c) => (
                 <button
@@ -162,8 +160,8 @@ export function Tenants() {
                   onClick={() => setNewColor(c.value)}
                   className={`h-7 w-7 rounded-full ${c.cls} transition-all ${
                     newColor === c.value
-                      ? "ring-2 ring-white ring-offset-2 ring-offset-gray-900"
-                      : "opacity-50 hover:opacity-80"
+                      ? "ring-2 ring-white ring-offset-2 ring-offset-[var(--surface-1)] scale-110"
+                      : "opacity-40 hover:opacity-70"
                   }`}
                   title={c.label}
                 />
@@ -174,14 +172,14 @@ export function Tenants() {
             <button
               onClick={handleAdd}
               disabled={!newName || !newTenantId || createMutation.isPending}
-              className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-[13px] font-semibold text-white shadow-sm shadow-blue-500/20 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               {createMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               Register Tenant
             </button>
             <button
               onClick={() => setShowAdd(false)}
-              className="rounded-lg px-4 py-2 text-sm text-gray-400 hover:text-gray-200 transition-colors"
+              className="rounded-lg px-4 py-2.5 text-[13px] text-gray-500 hover:text-gray-200 transition-colors"
             >
               Cancel
             </button>
@@ -194,37 +192,38 @@ export function Tenants() {
 
       {/* Tenant List */}
       {!tenants || tenants.length === 0 ? (
-        <div className="rounded-xl border border-gray-800 bg-gray-900/50 px-6 py-12 text-center">
-          <Building2 className="mx-auto h-10 w-10 text-gray-700" />
-          <p className="mt-3 text-sm text-gray-400">No tenants registered yet.</p>
+        <div className="card-surface rounded-xl px-6 py-14 text-center">
+          <div className="mx-auto w-fit rounded-xl bg-white/[0.03] p-4 ring-1 ring-white/[0.06]">
+            <Building2 className="h-8 w-8 text-gray-600" />
+          </div>
+          <p className="mt-4 text-[13px] font-medium text-gray-400">No tenants registered yet.</p>
           <p className="mt-1 text-xs text-gray-600">
             Add your first tenant to get started with multi-tenant monitoring.
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2 animate-in animate-in-2">
           {tenants.map((tenant) => (
             <div
               key={tenant.id}
-              className="rounded-xl border border-gray-800 bg-gray-900/50 transition-colors hover:border-gray-700"
+              className="card-surface rounded-xl transition-all"
             >
               {editingId === tenant.id ? (
-                /* Edit Mode */
                 <div className="p-5">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="mb-1.5 block text-xs font-medium text-gray-400">
+                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-gray-500">
                         Display Name
                       </label>
                       <input
                         type="text"
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
-                        className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-200 focus:border-blue-500 focus:outline-none"
+                        className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3.5 py-2.5 text-[13px] text-gray-200 focus:border-blue-500/50 focus:outline-none transition-colors"
                       />
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-xs font-medium text-gray-400">
+                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-gray-500">
                         Color
                       </label>
                       <div className="flex gap-2 pt-1">
@@ -234,8 +233,8 @@ export function Tenants() {
                             onClick={() => setEditColor(c.value)}
                             className={`h-6 w-6 rounded-full ${c.cls} transition-all ${
                               editColor === c.value
-                                ? "ring-2 ring-white ring-offset-2 ring-offset-gray-900"
-                                : "opacity-50 hover:opacity-80"
+                                ? "ring-2 ring-white ring-offset-2 ring-offset-[var(--surface-1)] scale-110"
+                                : "opacity-40 hover:opacity-70"
                             }`}
                             title={c.label}
                           />
@@ -247,34 +246,33 @@ export function Tenants() {
                     <button
                       onClick={() => handleEdit(tenant.id)}
                       disabled={updateMutation.isPending}
-                      className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50 transition-colors"
+                      className="rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-50 transition-all"
                     >
                       Save
                     </button>
                     <button
                       onClick={() => setEditingId(null)}
-                      className="rounded-lg px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200 transition-colors"
+                      className="rounded-lg px-3.5 py-2 text-xs text-gray-500 hover:text-gray-200 transition-colors"
                     >
                       Cancel
                     </button>
                   </div>
                 </div>
               ) : (
-                /* Display Mode */
                 <div className="flex items-center gap-4 p-5">
-                  <div className={`h-4 w-4 shrink-0 rounded-full ${getTenantColorCls(tenant.color)}`} />
+                  <div className={`h-3.5 w-3.5 shrink-0 rounded-full ${getTenantColorCls(tenant.color)} shadow-sm`} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-200">
+                      <span className="text-[13px] font-semibold text-gray-200">
                         {tenant.displayName}
                       </span>
                       {tenant.isDefault && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-yellow-500/10 px-2 py-0.5 text-[10px] font-medium text-yellow-400">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-400 border border-amber-500/20">
                           <Star className="h-2.5 w-2.5" /> Default
                         </span>
                       )}
                     </div>
-                    <div className="mt-0.5 font-mono text-xs text-gray-500">
+                    <div className="mt-0.5 font-mono text-[11px] text-gray-600">
                       {tenant.tenantId}
                     </div>
                   </div>
@@ -287,7 +285,7 @@ export function Tenants() {
                       ) : (
                         <XCircle className="h-4 w-4 text-red-400" />
                       )}
-                      <span className={`text-xs max-w-xs truncate ${testResults[tenant.id].success ? "text-emerald-400" : "text-red-400"}`} title={testResults[tenant.id].message}>
+                      <span className={`text-xs max-w-xs truncate font-medium ${testResults[tenant.id].success ? "text-emerald-400" : "text-red-400"}`} title={testResults[tenant.id].message}>
                         {testResults[tenant.id].success
                           ? (testResults[tenant.id].organization || "OK")
                           : (testResults[tenant.id].message || "Failed")}
@@ -296,11 +294,11 @@ export function Tenants() {
                   )}
 
                   {/* Actions */}
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-0.5">
                     <button
                       onClick={() => handleTest(tenant.id)}
                       disabled={testMutation.isPending}
-                      className="rounded-lg p-2 text-gray-500 hover:bg-gray-800 hover:text-gray-300 transition-colors"
+                      className="rounded-lg p-2 text-gray-600 hover:bg-white/[0.04] hover:text-gray-300 transition-colors"
                       title="Test connection"
                     >
                       {testMutation.isPending && testMutation.variables === tenant.id ? (
@@ -311,7 +309,7 @@ export function Tenants() {
                     </button>
                     <button
                       onClick={() => startEdit(tenant)}
-                      className="rounded-lg p-2 text-gray-500 hover:bg-gray-800 hover:text-gray-300 transition-colors"
+                      className="rounded-lg p-2 text-gray-600 hover:bg-white/[0.04] hover:text-gray-300 transition-colors"
                       title="Edit"
                     >
                       <Pencil className="h-4 w-4" />
@@ -319,7 +317,7 @@ export function Tenants() {
                     {!tenant.isDefault && (
                       <button
                         onClick={() => setDefaultMutation.mutate(tenant.id)}
-                        className="rounded-lg p-2 text-gray-500 hover:bg-gray-800 hover:text-yellow-400 transition-colors"
+                        className="rounded-lg p-2 text-gray-600 hover:bg-white/[0.04] hover:text-amber-400 transition-colors"
                         title="Set as default"
                       >
                         <Star className="h-4 w-4" />
@@ -327,7 +325,7 @@ export function Tenants() {
                     )}
                     <button
                       onClick={() => handleDelete(tenant)}
-                      className="rounded-lg p-2 text-gray-500 hover:bg-gray-800 hover:text-red-400 transition-colors"
+                      className="rounded-lg p-2 text-gray-600 hover:bg-red-500/10 hover:text-red-400 transition-colors"
                       title="Delete"
                     >
                       <Trash2 className="h-4 w-4" />

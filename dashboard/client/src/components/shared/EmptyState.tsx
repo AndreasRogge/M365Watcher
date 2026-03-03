@@ -19,15 +19,15 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-lg border border-gray-800 bg-gray-900/50 py-16 px-6",
+        "card-surface flex flex-col items-center justify-center rounded-xl py-16 px-6",
         className
       )}
     >
-      <div className="rounded-full bg-gray-800 p-4">
-        <Icon className="h-8 w-8 text-gray-500" />
+      <div className="rounded-xl bg-white/[0.03] p-4 ring-1 ring-white/[0.06]">
+        <Icon className="h-7 w-7 text-gray-500" />
       </div>
-      <h3 className="mt-4 text-lg font-semibold text-gray-200">{title}</h3>
-      <p className="mt-1 text-sm text-gray-400 text-center max-w-sm">
+      <h3 className="mt-5 text-[15px] font-semibold text-gray-200">{title}</h3>
+      <p className="mt-1.5 text-[13px] text-gray-500 text-center max-w-sm leading-relaxed">
         {description}
       </p>
       {action && <div className="mt-6">{action}</div>}

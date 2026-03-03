@@ -25,19 +25,20 @@ export function DriftDetail() {
     <div>
       <Link
         to="/drifts"
-        className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-200 mb-4 transition-colors"
+        className="inline-flex items-center gap-1.5 text-[13px] font-medium text-gray-500 hover:text-gray-300 mb-5 transition-colors"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="h-3.5 w-3.5" />
         Back to Drifts
       </Link>
 
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex items-start justify-between mb-6 animate-in animate-in-1">
         <div>
-          <h1 className="text-2xl font-bold text-gray-100">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-100">
             {getResourceShortName(drift.resourceType)}
           </h1>
-          <p className="mt-1 text-sm text-gray-400">
-            {getWorkloadFromType(drift.resourceType)} &bull; {drift.resourceType}
+          <p className="mt-1.5 text-sm text-gray-500">
+            {getWorkloadFromType(drift.resourceType)} &bull;{" "}
+            <span className="font-mono text-gray-600">{drift.resourceType}</span>
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -47,48 +48,62 @@ export function DriftDetail() {
       </div>
 
       {/* Metadata */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
-        <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-4">
-          <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-            Detected
-          </div>
-          <div className="text-sm text-gray-200">
-            {formatDate(drift.detectedDateTime)}
-          </div>
-        </div>
-        <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-4">
-          <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-            Change Type
-          </div>
-          <div className="text-sm text-gray-200 capitalize">
-            {drift.changeType}
-          </div>
-        </div>
-        <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-4">
-          <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-            Monitor
-          </div>
-          <Link
-            to={`/monitors/${drift.monitorId}`}
-            className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+      <div className="grid grid-cols-4 gap-3 mb-8 animate-in animate-in-2">
+        {[
+          {
+            label: "Detected",
+            value: formatDate(drift.detectedDateTime),
+            mono: false,
+          },
+          {
+            label: "Change Type",
+            value: drift.changeType,
+            mono: false,
+            capitalize: true,
+          },
+          {
+            label: "Monitor",
+            value: monitorName,
+            link: `/monitors/${drift.monitorId}`,
+            mono: false,
+          },
+          {
+            label: "Resource ID",
+            value: drift.resourceId,
+            mono: true,
+          },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className="card-surface rounded-xl p-4"
           >
-            {monitorName}
-          </Link>
-        </div>
-        <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-4">
-          <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-            Resource ID
+            <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-600 mb-1.5">
+              {item.label}
+            </div>
+            {item.link ? (
+              <Link
+                to={item.link}
+                className="text-[13px] font-medium text-blue-400 hover:text-blue-300"
+              >
+                {item.value}
+              </Link>
+            ) : (
+              <div
+                className={`text-[13px] text-gray-300 ${
+                  item.mono ? "font-mono text-xs text-gray-400 break-all" : ""
+                } ${item.capitalize ? "capitalize" : ""}`}
+              >
+                {item.value}
+              </div>
+            )}
           </div>
-          <div className="text-xs text-gray-400 font-mono break-all">
-            {drift.resourceId}
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Diff Viewer */}
-      <div className="rounded-xl border border-gray-800 bg-gray-900/50">
-        <div className="border-b border-gray-800 px-6 py-4">
-          <h2 className="text-sm font-semibold text-gray-200">
+      <div className="card-surface rounded-xl animate-in animate-in-3">
+        <div className="border-b border-white/[0.06] px-6 py-4">
+          <h2 className="text-[13px] font-semibold text-gray-200">
             Configuration Changes
           </h2>
         </div>

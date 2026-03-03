@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { GitCompareArrows, Filter } from "lucide-react";
+import { GitCompareArrows, Filter, X } from "lucide-react";
 import { useDrifts } from "../api/drifts";
 import { useMonitors } from "../api/monitors";
 import { StatusBadge } from "../components/shared/StatusBadge";
@@ -27,26 +27,29 @@ export function Drifts() {
   if (isLoading) return <LoadingSpinner message="Loading drifts..." />;
   if (error) return <ErrorDisplay message={error.message} onRetry={() => refetch()} />;
 
-  // Get monitor name by id
   const getMonitorName = (monitorId: string) =>
     monitors?.find((m) => m.id === monitorId)?.displayName || monitorId.substring(0, 8) + "...";
 
+  const hasFilters = monitorFilter || statusFilter !== "all";
+
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-100">Configuration Drifts</h1>
-        <p className="mt-1 text-sm text-gray-400">
+      <div className="mb-6 animate-in animate-in-1">
+        <h1 className="text-2xl font-bold tracking-tight text-gray-100">
+          Configuration Drifts
+        </h1>
+        <p className="mt-1.5 text-sm text-gray-500">
           Detected configuration changes from your baselines
         </p>
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-4 mb-6">
-        <Filter className="h-4 w-4 text-gray-500" />
+      <div className="flex items-center gap-3 mb-6 animate-in animate-in-2">
+        <Filter className="h-4 w-4 text-gray-600" />
         <select
           value={monitorFilter}
           onChange={(e) => setMonitorFilter(e.target.value)}
-          className="rounded-md border border-gray-700 bg-gray-800 px-3 py-1.5 text-sm text-gray-200 focus:border-blue-500 focus:outline-none"
+          className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[13px] text-gray-300 focus:border-blue-500/50 focus:outline-none transition-colors"
         >
           <option value="">All Monitors</option>
           {monitors?.map((m) => (
@@ -58,21 +61,22 @@ export function Drifts() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-md border border-gray-700 bg-gray-800 px-3 py-1.5 text-sm text-gray-200 focus:border-blue-500 focus:outline-none"
+          className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[13px] text-gray-300 focus:border-blue-500/50 focus:outline-none transition-colors"
         >
           <option value="all">All Statuses</option>
           <option value="active">Active</option>
           <option value="resolved">Resolved</option>
         </select>
-        {(monitorFilter || statusFilter !== "all") && (
+        {hasFilters && (
           <button
             onClick={() => {
               setMonitorFilter("");
               setStatusFilter("all");
             }}
-            className="text-xs text-gray-400 hover:text-gray-200 transition-colors"
+            className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-gray-400 hover:bg-white/[0.04] hover:text-gray-200"
           >
-            Clear filters
+            <X className="h-3 w-3" />
+            Clear
           </button>
         )}
       </div>
@@ -83,60 +87,60 @@ export function Drifts() {
           icon={GitCompareArrows}
           title="No drifts found"
           description={
-            monitorFilter || statusFilter !== "all"
+            hasFilters
               ? "No drifts match your current filters. Try adjusting them."
               : "No configuration drifts detected. Your tenant is in compliance with all baselines!"
           }
         />
       ) : (
-        <div className="rounded-xl border border-gray-800 bg-gray-900/50 overflow-hidden">
+        <div className="card-surface rounded-xl overflow-hidden animate-in animate-in-3">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-800 bg-gray-900">
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+              <tr className="table-header">
+                <th className="text-left px-6 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                   Resource
                 </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="text-left px-6 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                   Workload
                 </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="text-left px-6 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                   Change
                 </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="text-left px-6 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="text-left px-6 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                   Monitor
                 </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="text-left px-6 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                   Detected
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800">
+            <tbody className="divide-y divide-white/[0.04]">
               {drifts.map((drift) => (
-                <tr key={drift.id} className="hover:bg-gray-800/30 transition-colors">
-                  <td className="px-6 py-4">
+                <tr key={drift.id} className="hover:bg-white/[0.02] transition-colors">
+                  <td className="px-6 py-3.5">
                     <Link
                       to={`/drifts/${drift.id}`}
-                      className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors"
+                      className="text-[13px] font-medium text-blue-400 hover:text-blue-300"
                     >
                       {getResourceShortName(drift.resourceType)}
                     </Link>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-400">
+                  <td className="px-6 py-3.5 text-[13px] text-gray-500">
                     {getWorkloadFromType(drift.resourceType)}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-3.5">
                     <StatusBadge status={drift.changeType} />
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-3.5">
                     <StatusBadge status={drift.status} />
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-400">
+                  <td className="px-6 py-3.5 text-[13px] text-gray-500">
                     {getMonitorName(drift.monitorId)}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-400">
+                  <td className="px-6 py-3.5 text-[13px] tabular-nums text-gray-500">
                     {formatDate(drift.detectedDateTime)}
                   </td>
                 </tr>

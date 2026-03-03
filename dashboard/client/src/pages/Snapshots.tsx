@@ -57,16 +57,16 @@ export function Snapshots() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 animate-in animate-in-1">
         <div>
-          <h1 className="text-2xl font-bold text-gray-100">Snapshots</h1>
-          <p className="mt-1 text-sm text-gray-400">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-100">Snapshots</h1>
+          <p className="mt-1.5 text-sm text-gray-500">
             Point-in-time configuration captures (auto-deleted after 7 days)
           </p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-[13px] font-semibold text-white shadow-sm shadow-blue-500/20 hover:bg-blue-500 transition-all"
         >
           <Plus className="h-4 w-4" />
           Create Snapshot
@@ -82,7 +82,7 @@ export function Snapshots() {
           action={
             <button
               onClick={() => setShowCreate(true)}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-[13px] font-semibold text-white shadow-sm shadow-blue-500/20 hover:bg-blue-500"
             >
               <Plus className="h-4 w-4" />
               Create Snapshot
@@ -90,64 +90,64 @@ export function Snapshots() {
           }
         />
       ) : (
-        <div className="rounded-xl border border-gray-800 bg-gray-900/50 overflow-hidden">
+        <div className="card-surface rounded-xl overflow-hidden animate-in animate-in-2">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-800 bg-gray-900">
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+              <tr className="table-header">
+                <th className="text-left px-6 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                   Name
                 </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="text-left px-6 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="text-left px-6 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                   Created
                 </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="text-left px-6 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                   Resources
                 </th>
-                <th className="text-right px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="text-right px-6 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800">
+            <tbody className="divide-y divide-white/[0.04]">
               {snapshots.map((snapshot) => (
                 <tr
                   key={snapshot.id}
-                  className="hover:bg-gray-800/30 transition-colors"
+                  className="hover:bg-white/[0.02] transition-colors"
                 >
-                  <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-gray-200">
+                  <td className="px-6 py-3.5">
+                    <div className="text-[13px] font-medium text-gray-200">
                       {snapshot.displayName}
                     </div>
                     {snapshot.description && (
-                      <div className="text-xs text-gray-500 mt-0.5">
+                      <div className="text-xs text-gray-600 mt-0.5">
                         {snapshot.description}
                       </div>
                     )}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-3.5">
                     <StatusBadge status={snapshot.status} />
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-400">
+                  <td className="px-6 py-3.5 text-[13px] tabular-nums text-gray-500">
                     {formatDate(snapshot.createdDateTime)}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-400">
+                  <td className="px-6 py-3.5 text-[13px] tabular-nums text-gray-500">
                     {snapshot.resourceCount ?? snapshot.resources?.length ?? "-"}
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end gap-2">
+                  <td className="px-6 py-3.5">
+                    <div className="flex items-center justify-end gap-1">
                       <Link
                         to={`/snapshots/${snapshot.id}`}
-                        className="rounded p-1.5 text-gray-400 hover:bg-gray-700 hover:text-gray-200 transition-colors"
+                        className="rounded-lg p-2 text-gray-500 hover:bg-white/[0.04] hover:text-gray-300 transition-colors"
                         title="View details"
                       >
                         <Eye className="h-4 w-4" />
                       </Link>
                       <button
                         onClick={() => setDeleteId(snapshot.id)}
-                        className="rounded p-1.5 text-gray-400 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                        className="rounded-lg p-2 text-gray-500 hover:bg-red-500/10 hover:text-red-400 transition-colors"
                         title="Delete snapshot"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -165,25 +165,25 @@ export function Snapshots() {
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
-            className="fixed inset-0 bg-black/60"
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm"
             onClick={() => setShowCreate(false)}
           />
-          <div className="relative z-10 w-full max-w-lg rounded-lg border border-gray-700 bg-gray-900 p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="relative z-10 w-full max-w-lg rounded-2xl border border-white/[0.08] bg-[var(--surface-2)] p-6 shadow-2xl shadow-black/50 max-h-[90vh] overflow-y-auto animate-in animate-in-1">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-gray-100">
+              <h2 className="text-lg font-semibold tracking-tight text-gray-100">
                 Create Snapshot
               </h2>
               <button
                 onClick={() => setShowCreate(false)}
-                className="text-gray-400 hover:text-gray-200"
+                className="rounded-lg p-1.5 text-gray-500 hover:bg-white/[0.06] hover:text-gray-300"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4.5 w-4.5" />
               </button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                <label className="block text-[13px] font-medium text-gray-300 mb-1.5">
                   Display Name *
                 </label>
                 <input
@@ -193,12 +193,12 @@ export function Snapshots() {
                     setForm({ ...form, displayName: e.target.value })
                   }
                   placeholder="e.g. Exchange Security Baseline"
-                  className="w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:border-blue-500 focus:outline-none"
+                  className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3.5 py-2.5 text-[13px] text-gray-200 placeholder-gray-600 focus:border-blue-500/50 focus:outline-none transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                <label className="block text-[13px] font-medium text-gray-300 mb-1.5">
                   Description
                 </label>
                 <textarea
@@ -208,12 +208,12 @@ export function Snapshots() {
                   }
                   placeholder="Optional description..."
                   rows={2}
-                  className="w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:border-blue-500 focus:outline-none resize-none"
+                  className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3.5 py-2.5 text-[13px] text-gray-200 placeholder-gray-600 focus:border-blue-500/50 focus:outline-none resize-none transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                <label className="block text-[13px] font-medium text-gray-300 mb-1.5">
                   Resource Types *
                 </label>
                 <ResourceTypePicker
@@ -223,7 +223,7 @@ export function Snapshots() {
               </div>
 
               {formError && (
-                <div className="rounded-md bg-red-500/10 border border-red-500/30 px-3 py-2 text-sm text-red-400">
+                <div className="rounded-lg bg-red-500/8 border border-red-500/20 px-3.5 py-2.5 text-[13px] text-red-400">
                   {formError}
                 </div>
               )}
@@ -232,14 +232,14 @@ export function Snapshots() {
             <div className="mt-6 flex justify-end gap-3">
               <button
                 onClick={() => setShowCreate(false)}
-                className="rounded-md border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700"
+                className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 py-2.5 text-[13px] font-medium text-gray-400 hover:bg-white/[0.06] hover:text-gray-200 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreate}
                 disabled={createMutation.isPending}
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                className="rounded-lg bg-blue-600 px-4 py-2.5 text-[13px] font-semibold text-white shadow-sm shadow-blue-500/20 hover:bg-blue-500 disabled:opacity-50 transition-all"
               >
                 {createMutation.isPending
                   ? "Creating..."
